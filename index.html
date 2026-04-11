@@ -120,7 +120,7 @@ select.fi{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
   <div>
     <h1 id="hTitle">🍁 Canadian & American Market</h1>
     <div class="sub" id="hSub">Chargement...</div>
-    <div class="ver">Version 13</div>
+    <div class="ver">Version 14</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -344,13 +344,19 @@ function renderAdmin(){
       <select class="fi" id="aDept">${DEPTS.filter(d=>d!=='Tous').map(d=>`<option>${d}</option>`).join('')}</select>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div class="fg"><label class="fl">Pièces/master case</label><input class="fi" id="aPiecesBox" type="number" placeholder="12" min="1" value="12"></div>
+      <div class="fg"><label class="fl">Pièces/master case</label><input class="fi" id="aPiecesBox" type="number" placeholder="12" min="1" value="12" oninput="calcTotal()"></div>
       <div class="fg"><label class="fl">Unité</label><input class="fi" id="aUnit" value="unités"></div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div class="fg"><label class="fl">Quantité</label><input class="fi" id="aQty" type="number" placeholder="0" min="0"></div>
-      <div class="fg"><label class="fl">Seuil alerte</label><input class="fi" id="aMin" type="number" placeholder="2" min="0"></div>
+      <div class="fg"><label class="fl">Cartons complets</label><input class="fi" id="aCartons" type="number" placeholder="0" min="0" value="0" oninput="calcTotal()"></div>
+      <div class="fg"><label class="fl">Pièces séparées</label><input class="fi" id="aPieces" type="number" placeholder="0" min="0" value="0" oninput="calcTotal()"></div>
     </div>
+    <div class="fg">
+      <label class="fl">Total unités (calculé)</label>
+      <div id="totalDisplay" style="background:#1a3a1a;border:1px solid #166534;border-radius:10px;padding:10px 14px;font-size:18px;font-weight:800;color:#22c55e;text-align:center">0 unités</div>
+      <input type="hidden" id="aQty" value="0">
+    </div>
+    <div class="fg"><label class="fl">Seuil alerte (cartons)</label><input class="fi" id="aMin" type="number" placeholder="2" min="0"></div>
     <div class="fg"><label class="fl">Photo produit</label>
       <div id="photoArea" class="photo-area" onclick="document.getElementById('photoInput').click()">
         <span style="font-size:24px">📷</span><span>Prendre / choisir une photo</span>
@@ -438,12 +444,21 @@ window.addProduct=async function(){
     dept:document.getElementById('aDept').value,
     piecesPerBox:parseInt(document.getElementById('aPiecesBox').value)||12,
     unit:document.getElementById('aUnit').value||'unités',
-    qty:parseInt(document.getElementById('aQty').value)||0,
+    qty:(()=>{
+      const cartons=parseInt(document.getElementById('aCartons').value)||0;
+      const pieces=parseInt(document.getElementById('aPieces').value)||0;
+      const piecesBox=parseInt(document.getElementById('aPiecesBox').value)||12;
+      return cartons*piecesBox+pieces;
+    })(),
     minQty:parseInt(document.getElementById('aMin').value)||2,
     photo:S.photoData||null,createdAt:serverTimestamp()
   });
   S.photoData=null;
-  ['aName','aBarcode'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});const pb=document.getElementById('aPiecesBox');if(pb)pb.value='12';
+  ['aName','aBarcode','aCartons','aPieces'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='0';});
+  const pb=document.getElementById('aPiecesBox');if(pb)pb.value='12';
+  const nd=document.getElementById('aName');if(nd)nd.value='';
+  const nb=document.getElementById('aBarcode');if(nb)nb.value='';
+  const td=document.getElementById('totalDisplay');if(td)td.textContent='0 unités';
   const sr=document.getElementById('scanResult');if(sr)sr.style.display='none';
   const pp=document.getElementById('productPreview');if(pp)pp.style.display='none';
   const prev=document.getElementById('photoPreview');const area=document.getElementById('photoArea');
@@ -564,6 +579,17 @@ window.closeScanner=function(){
   if(scanInterval){clearInterval(scanInterval);scanInterval=null;}
   if(scanStream){scanStream.getTracks().forEach(t=>t.stop());scanStream=null;}
   document.getElementById('scanOv').classList.remove('show');
+};
+
+window.calcTotal=function(){
+  const cartons=parseInt(document.getElementById('aCartons')?.value)||0;
+  const pieces=parseInt(document.getElementById('aPieces')?.value)||0;
+  const piecesBox=parseInt(document.getElementById('aPiecesBox')?.value)||12;
+  const total=cartons*piecesBox+pieces;
+  const td=document.getElementById('totalDisplay');
+  if(td)td.textContent=total+' unités ('+cartons+' cartons × '+piecesBox+' + '+pieces+' pièces)';
+  const aq=document.getElementById('aQty');
+  if(aq)aq.value=total;
 };
 
 window.addShop=async function(){
