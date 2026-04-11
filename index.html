@@ -8,101 +8,110 @@
 <title>Canadian & American Market — Stock</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{background:#e0e0e0 !important;min-height:100vh}
-:root{--red:#C8102E;--bg:#e0e0e0;--white:#fff;--border:#ddd;--text:#1a1a1a;--muted:#666;--green:#16a34a;--green-bg:#dcfce7}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#e0e0e0 !important;color:var(--text);display:flex;flex-direction:column;max-width:480px;margin:0 auto}
-.hdr{background:var(--red);color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+html,body{background:#111 !important;min-height:100vh}
+:root{--red:#C8102E;--bg:#111;--card:#1e1e1e;--border:#333;--text:#f0f0f0;--muted:#888;--green:#22c55e;--green-bg:#14532d}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#111 !important;color:var(--text);display:flex;flex-direction:column;max-width:480px;margin:0 auto}
+.hdr{background:#1a0508;border-bottom:1px solid #3a0a10;color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
 .hdr h1{font-size:14px;font-weight:700}
-.hdr .sub{font-size:10px;opacity:.75;margin-top:1px}
-.hdr .ver{font-size:9px;opacity:.5;margin-top:1px}
-.dot{width:8px;height:8px;border-radius:50%;background:#4ade80;display:inline-block}
-.dot.off{background:#f87171}
-.btn-sw{background:rgba(255,255,255,.2);border:none;color:#fff;padding:6px 10px;border-radius:16px;font-size:11px;cursor:pointer}
-.content{flex:1;overflow-y:auto;padding:12px;padding-bottom:80px;background:#e0e0e0 !important}
-.nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:1px solid var(--border);display:flex;z-index:100}
+.hdr .sub{font-size:10px;opacity:.6;margin-top:1px}
+.hdr .ver{font-size:9px;opacity:.4;margin-top:1px}
+.dot{width:8px;height:8px;border-radius:50%;background:#22c55e;display:inline-block}
+.dot.off{background:#ef4444}
+.btn-sw{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;padding:6px 10px;border-radius:16px;font-size:11px;cursor:pointer}
+.content{flex:1;overflow-y:auto;padding:12px;padding-bottom:80px;background:#111}
+.nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#1e1e1e;border-top:1px solid var(--border);display:flex;z-index:100}
 .nb{flex:1;display:flex;flex-direction:column;align-items:center;padding:8px 4px 12px;border:none;background:none;cursor:pointer;position:relative}
 .nb .ic{font-size:20px}
 .nb .lb{font-size:9px;color:var(--muted);margin-top:2px;font-weight:500}
 .nb.active .lb{color:var(--red)}
 .nb .bdg{position:absolute;top:4px;right:calc(50% - 18px);background:var(--red);color:#fff;font-size:9px;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 4px;font-weight:700}
-.card{background:#fff;border-radius:12px;margin-bottom:10px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.card{background:var(--card);border-radius:12px;margin-bottom:10px;overflow:hidden;border:1px solid var(--border)}
 .card-h{padding:12px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
 .card-h h3{font-size:13px;font-weight:600}
-.card-b{padding:10px 14px;background:#fff}
-.chip{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;background:#eee;color:var(--muted)}
-.chip.low{background:#fef3c7;color:#92400e}
+.card-b{padding:10px 14px;background:var(--card)}
+.chip{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;background:#2a2a2a;color:var(--muted)}
+.chip.low{background:#422006;color:#fb923c}
 .chip.ok{background:var(--green-bg);color:var(--green)}
-.chip.out{background:#fee2e2;color:#b91c1c}
-.pr{display:flex;align-items:center;padding:10px 0;border-bottom:1px solid #f0f0f0;gap:10px}
+.chip.out{background:#3f0d0d;color:#f87171}
+.pr{display:flex;align-items:center;padding:10px 0;border-bottom:1px solid #2a2a2a;gap:10px}
 .pr:last-child{border-bottom:none}
-.pi{width:44px;height:44px;border-radius:8px;background:#f0f0f0;border:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;overflow:hidden}
+.pi{width:44px;height:44px;border-radius:8px;background:#2a2a2a;border:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;overflow:hidden}
 .pi img{width:100%;height:100%;object-fit:cover}
 .pinfo{flex:1;min-width:0}
-.pn{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pn{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
 .pd{font-size:11px;color:var(--muted);margin-top:1px}
 .qc{display:flex;align-items:center;gap:6px}
-.qb{width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:#f5f5f5;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;font-weight:600}
-.qb:active{background:#e0e0e0}
+.qb{width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:#2a2a2a;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;font-weight:600;color:var(--text)}
+.qb:active{background:#3a3a3a}
 .qn{font-size:18px;font-weight:700;line-height:1;min-width:28px;text-align:center}
 .qu{font-size:10px;color:var(--muted);text-align:center}
 .fg{margin-bottom:12px}
 .fl{font-size:12px;font-weight:600;color:var(--muted);margin-bottom:4px;display:block;text-transform:uppercase;letter-spacing:.5px}
-.fi{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:#fff;color:var(--text);outline:none}
+.fi{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:#2a2a2a;color:var(--text);outline:none}
 .fi:focus{border-color:var(--red)}
-select.fi{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23666' d='M6 8L0 0h12z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+select.fi{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23888' d='M6 8L0 0h12z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
 .btn{width:100%;padding:12px;border-radius:12px;border:none;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:8px}
 .btn:active{opacity:.8}
 .btn-red{background:var(--red);color:#fff}
 .btn-blue{background:#1d4ed8;color:#fff}
-.btn-out{background:#f0f0f0;color:var(--text);border:1px solid var(--border)}
-.btn-green{background:var(--green);color:#fff}
+.btn-out{background:#2a2a2a;color:var(--text);border:1px solid var(--border)}
+.btn-green{background:#16a34a;color:#fff}
 .btn-sm{width:auto;padding:6px 14px;font-size:12px;margin-bottom:0;border-radius:8px}
 .sb{display:flex;gap:8px;margin-bottom:12px}
-.sb input{flex:1;padding:10px 14px;border-radius:12px;border:1px solid var(--border);font-size:14px;background:#fff;outline:none}
+.sb input{flex:1;padding:10px 14px;border-radius:12px;border:1px solid var(--border);font-size:14px;background:#2a2a2a;color:var(--text);outline:none}
 .sb input:focus{border-color:var(--red)}
 .ds{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px;scrollbar-width:none}
 .ds::-webkit-scrollbar{display:none}
-.dc{flex-shrink:0;padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:#fff;font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap}
+.dc{flex-shrink:0;padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:#2a2a2a;font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap;color:var(--text)}
 .dc.active{background:var(--red);color:#fff;border-color:var(--red)}
-.panel-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:flex-end}
+.panel-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:flex-end}
 .panel-ov.show{display:flex}
-.panel-box{background:#fff;width:100%;max-width:480px;margin:0 auto;border-radius:20px 20px 0 0;padding:20px 16px 36px;max-height:80vh;overflow-y:auto}
+.panel-box{background:#1e1e1e;width:100%;max-width:480px;margin:0 auto;border-radius:20px 20px 0 0;padding:20px 16px 36px;max-height:80vh;overflow-y:auto;border-top:1px solid var(--border)}
 .panel-title{font-size:16px;font-weight:700;margin-bottom:16px;text-align:center}
-.mr{display:flex;align-items:center;padding:12px 14px;border-radius:12px;border:1px solid var(--border);margin-bottom:8px;cursor:pointer;font-size:14px;font-weight:500;gap:10px}
+.mr{display:flex;align-items:center;padding:12px 14px;border-radius:12px;border:1px solid var(--border);margin-bottom:8px;cursor:pointer;font-size:14px;font-weight:500;gap:10px;background:#2a2a2a;color:var(--text)}
 .mr.active{background:var(--red);color:#fff;border-color:var(--red)}
-.alert{background:#fef9c3;border:1px solid #fde68a;border-radius:10px;padding:10px 14px;font-size:12px;color:#854d0e;margin-bottom:10px}
+.alert{background:#2a1f00;border:1px solid #5a3e00;border-radius:10px;padding:10px 14px;font-size:12px;color:#fbbf24;margin-bottom:10px}
 .sg{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
-.sc{background:#fff;border-radius:12px;padding:14px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.sc{background:var(--card);border-radius:12px;padding:14px;text-align:center;border:1px solid var(--border)}
 .sn{font-size:28px;font-weight:800;color:var(--red);line-height:1}
 .sl{font-size:11px;color:var(--muted);margin-top:4px}
-.oi{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:13px}
+.oi{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #2a2a2a;font-size:13px}
 .oi:last-child{border-bottom:none}
-.oid{text-decoration:line-through;opacity:.5}
+.oid{text-decoration:line-through;opacity:.4}
 .loading{text-align:center;padding:50px;color:var(--muted);font-size:14px}
-.loading::after{content:'';display:block;width:28px;height:28px;border-radius:50%;border:3px solid #ddd;border-top-color:var(--red);animation:spin .8s linear infinite;margin:16px auto 0}
+.loading::after{content:'';display:block;width:28px;height:28px;border-radius:50%;border:3px solid #333;border-top-color:var(--red);animation:spin .8s linear infinite;margin:16px auto 0}
 @keyframes spin{to{transform:rotate(360deg)}}
 .empty{text-align:center;padding:40px;color:var(--muted);font-size:13px}
 .st{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin:14px 0 8px}
-.tb{display:flex;gap:0;background:#d0d0d0;border-radius:10px;padding:3px;margin-bottom:12px}
+.tb{display:flex;background:#1a1a1a;border-radius:10px;padding:3px;margin-bottom:12px;border:1px solid var(--border)}
 .tbb{flex:1;padding:7px;border:none;background:none;border-radius:8px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer}
-.tbb.active{background:#fff;color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.1)}
-.scan-result{background:#dcfce7;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:13px;color:#166534;display:none}
-.scan-result.warn{background:#fef3c7;color:#92400e}
-.scan-result.err{background:#fee2e2;color:#b91c1c}
-.photo-area{width:100%;height:90px;border:2px dashed var(--border);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;background:#f5f5f5;margin-bottom:12px;font-size:13px;color:var(--muted);gap:4px}
+.tbb.active{background:#2a2a2a;color:var(--text)}
+.scan-result{border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:13px;display:none}
+.scan-result.ok{background:#14532d;color:#86efac;border:1px solid #166534}
+.scan-result.warn{background:#422006;color:#fdba74;border:1px solid #9a3412}
+.scan-result.err{background:#3f0d0d;color:#fca5a5;border:1px solid #7f1d1d}
+.scan-result.loading{background:#1e3a5f;color:#93c5fd;border:1px solid #1d4ed8}
+.photo-area{width:100%;height:90px;border:2px dashed var(--border);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;background:#1a1a1a;margin-bottom:12px;font-size:13px;color:var(--muted);gap:4px}
+.product-preview{background:#2a2a2a;border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px;display:none}
+.product-preview img{width:60px;height:60px;object-fit:contain;border-radius:8px;float:right;margin-left:10px;background:#1a1a1a}
+.product-preview .pp-name{font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px}
+.product-preview .pp-brand{font-size:12px;color:var(--muted);margin-bottom:4px}
+.product-preview .pp-cat{font-size:11px;color:var(--green)}
 
-/* Scanner overlay en temps réel */
+/* Scanner overlay */
 .scan-ov{display:none;position:fixed;inset:0;background:#000;z-index:500;flex-direction:column}
 .scan-ov.show{display:flex}
-.scan-top{background:rgba(0,0,0,.7);padding:14px 16px;display:flex;align-items:center;gap:12px}
+.scan-top{background:rgba(0,0,0,.8);padding:14px 16px;display:flex;align-items:center;gap:12px}
 .scan-top h2{color:#fff;font-size:15px;font-weight:600;flex:1}
-.scan-close{background:rgba(255,255,255,.2);border:none;color:#fff;width:34px;height:34px;border-radius:17px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.scan-close{background:rgba(255,255,255,.15);border:none;color:#fff;width:34px;height:34px;border-radius:17px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .scan-wrap{flex:1;position:relative;overflow:hidden}
 #scanVideo{width:100%;height:100%;object-fit:cover}
-.scan-frame{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:250px;height:150px;border:3px solid var(--red);border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,.5)}
-.scan-line{position:absolute;top:0;left:0;right:0;height:2px;background:var(--red);opacity:.8;animation:scanline 1.5s linear infinite}
-@keyframes scanline{0%{top:0}100%{top:100%}}
-.scan-hint{position:absolute;bottom:20px;left:20px;right:20px;text-align:center;color:#fff;font-size:13px;background:rgba(0,0,0,.5);padding:8px;border-radius:8px}
+.scan-frame{position:absolute;top:50%;left:50%;transform:translate(-50%,-60%);width:260px;height:160px;border:3px solid var(--red);border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,.6)}
+.scan-corners::before,.scan-corners::after{content:'';position:absolute;width:20px;height:20px;border-color:var(--red);border-style:solid}
+.scan-line{position:absolute;top:0;left:0;right:0;height:2px;background:var(--red);opacity:.9;animation:scanline 1.5s ease-in-out infinite}
+@keyframes scanline{0%,100%{top:0}50%{top:100%}}
+.scan-hint{position:absolute;bottom:30px;left:20px;right:20px;text-align:center;color:#fff;font-size:13px;background:rgba(0,0,0,.6);padding:10px;border-radius:10px}
+.scan-status{position:absolute;top:20px;left:20px;right:20px;text-align:center;color:#fff;font-size:13px;background:rgba(200,16,46,.8);padding:8px;border-radius:8px;display:none}
 </style>
 </head>
 <body>
@@ -111,7 +120,7 @@ select.fi{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
   <div>
     <h1 id="hTitle">🍁 Canadian & American Market</h1>
     <div class="sub" id="hSub">Chargement...</div>
-    <div class="ver">Version 6</div>
+    <div class="ver">Version 7</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -129,7 +138,7 @@ select.fi{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
   </div>
 </div>
 
-<!-- Scanner en temps réel -->
+<!-- Scanner temps réel -->
 <div class="scan-ov" id="scanOv">
   <div class="scan-top">
     <h2>📷 Scanner un code-barres</h2>
@@ -138,7 +147,8 @@ select.fi{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
   <div class="scan-wrap">
     <video id="scanVideo" autoplay playsinline muted></video>
     <div class="scan-frame"><div class="scan-line"></div></div>
-    <div class="scan-hint">Pointez vers le code-barres</div>
+    <div class="scan-status" id="scanStatus"></div>
+    <div class="scan-hint">Pointez vers le code-barres — détection automatique</div>
   </div>
 </div>
 
@@ -167,10 +177,7 @@ const S={
   search:'',dept:'Tous',unsubs:[],photoData:null
 };
 
-// Scanner
-let scanStream=null;
-let barcodeDetector=null;
-let scanInterval=null;
+let scanStream=null,scanInterval=null;
 
 function isDepot(){return S.shop==='depot';}
 
@@ -196,7 +203,6 @@ function render(){
   document.getElementById('hSub').textContent={stock:'📦 Gestion du stock',order:'🛒 Commandes',admin:'⚙️ Administration',recap:'📊 Récapitulatif'}[S.mode]||'';
   renderNav();
   const c=document.getElementById('content');
-  c.style.background='#e0e0e0';
   if(S.mode==='stock')c.innerHTML=renderStock();
   else if(S.mode==='order')c.innerHTML=renderOrder();
   else if(S.mode==='admin')c.innerHTML=renderAdmin();
@@ -239,7 +245,7 @@ function prodRow(p){
     <div class="pinfo"><div class="pn">${p.name}</div><div class="pd">${p.dept||''} ${p.barcode?'· '+p.barcode:''} <span class="chip ${sc}">${sl}</span></div></div>
     <div class="qc">
       <button class="qb" onclick="chQty('${p.id}',-1)">−</button>
-      <div><div class="qn" style="color:${qty===0?'#b91c1c':qty<=min?'#92400e':'var(--text)'}">${qty}</div><div class="qu">${p.unit||'u.'}</div></div>
+      <div><div class="qn" style="color:${qty===0?'#f87171':qty<=min?'#fb923c':'var(--text)'}">${qty}</div><div class="qu">${p.unit||'u.'}</div></div>
       <button class="qb" onclick="chQty('${p.id}',1)">+</button>
     </div>
   </div>`;
@@ -289,9 +295,16 @@ function renderAdmin(){
   return`
   <div class="st">Ajouter un produit</div>
   <div class="card"><div class="card-b">
-    <button class="btn btn-blue" onclick="openScanner()">📷 Scanner le code-barres (caméra)</button>
+    <button class="btn btn-blue" onclick="openScanner()">📷 Scanner le code-barres</button>
     <div class="scan-result" id="scanResult"></div>
-    <div class="fg"><label class="fl">Code-barres</label><input class="fi" id="aBarcode" placeholder="Scanné ou saisir manuellement" inputmode="numeric"></div>
+    <div class="product-preview" id="productPreview">
+      <img id="ppImg" src="" alt="">
+      <div class="pp-name" id="ppName"></div>
+      <div class="pp-brand" id="ppBrand"></div>
+      <div class="pp-cat" id="ppCat"></div>
+      <div style="clear:both"></div>
+    </div>
+    <div class="fg"><label class="fl">Code-barres</label><input class="fi" id="aBarcode" placeholder="Scanné ou manuel" inputmode="numeric"></div>
     <div class="fg"><label class="fl">Nom du produit *</label><input class="fi" id="aName" placeholder="Ex: Dr Pepper 355ml"></div>
     <div class="fg"><label class="fl">Département</label>
       <select class="fi" id="aDept">${DEPTS.filter(d=>d!=='Tous').map(d=>`<option>${d}</option>`).join('')}</select>
@@ -318,7 +331,7 @@ function renderAdmin(){
       S.products.map(p=>`<div class="pr">
         <div class="pi">${p.photo?`<img src="${p.photo}">`:p.emoji||'📦'}</div>
         <div class="pinfo"><div class="pn">${p.name}</div><div class="pd">${p.dept||''} ${p.barcode?'· '+p.barcode:''} · Alerte: ${p.minQty||2}</div></div>
-        <button onclick="delProduct('${p.id}')" style="background:none;border:none;font-size:18px;cursor:pointer;color:#b91c1c">🗑</button>
+        <button onclick="delProduct('${p.id}')" style="background:none;border:none;font-size:18px;cursor:pointer;color:#f87171">🗑</button>
       </div>`).join('')}
   </div></div>`;
 }
@@ -328,8 +341,8 @@ function renderRecap(){
   const low=S.products.filter(p=>(p.qty||0)>0&&(p.qty||0)<=(p.minQty||2)).length;
   let h=`<div class="sg">
     <div class="sc"><div class="sn">${tot}</div><div class="sl">Produits</div></div>
-    <div class="sc"><div class="sn" style="color:#b91c1c">${out}</div><div class="sl">Épuisés</div></div>
-    <div class="sc"><div class="sn" style="color:#92400e">${low}</div><div class="sl">Stock faible</div></div>
+    <div class="sc"><div class="sn" style="color:#f87171">${out}</div><div class="sl">Épuisés</div></div>
+    <div class="sc"><div class="sn" style="color:#fb923c">${low}</div><div class="sl">Stock faible</div></div>
     <div class="sc"><div class="sn" style="color:var(--green)">${tot-out-low}</div><div class="sl">OK</div></div>
   </div>`;
   const byDept={};
@@ -370,6 +383,7 @@ window.addProduct=async function(){
   S.photoData=null;
   ['aName','aBarcode','aEmoji'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   const sr=document.getElementById('scanResult');if(sr)sr.style.display='none';
+  const pp=document.getElementById('productPreview');if(pp)pp.style.display='none';
   const prev=document.getElementById('photoPreview');const area=document.getElementById('photoArea');
   if(prev&&area){prev.style.display='none';area.style.display='flex';}
   render();
@@ -387,52 +401,100 @@ window.handlePhoto=function(input){
   r.readAsDataURL(file);
 };
 
-// ── Scanner en temps réel avec BarcodeDetector ─────────────
-window.openScanner=async function(){
-  const ov=document.getElementById('scanOv');
-  ov.classList.add('show');
-  try {
-    scanStream=await navigator.mediaDevices.getUserMedia({
-      video:{facingMode:{exact:'environment'},width:{ideal:1280},height:{ideal:720}}
-    });
-  } catch(e) {
-    try {
-      scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
-    } catch(e2) {
-      scanStream=await navigator.mediaDevices.getUserMedia({video:true});
+// ── Lookup Open Food Facts ─────────────────────────────────
+async function lookupBarcode(code){
+  const sr=document.getElementById('scanResult');
+  const pp=document.getElementById('productPreview');
+  if(sr){sr.style.display='block';sr.className='scan-result loading';sr.textContent='🔍 Recherche du produit en ligne...';}
+  try{
+    const res=await fetch(`https://world.openfoodfacts.org/api/v2/product/${code}.json?fields=product_name,brands,image_url,categories_tags,categories`);
+    const data=await res.json();
+    if(data.status===1&&data.product){
+      const p=data.product;
+      const name=p.product_name||'';
+      const brand=p.brands||'';
+      const imgUrl=p.image_url||'';
+      // Déterminer département
+      const cats=(p.categories||'').toLowerCase();
+      let dept='Divers';
+      if(cats.includes('boisson')||cats.includes('drink')||cats.includes('soda')||cats.includes('beverage'))dept='Boissons';
+      else if(cats.includes('snack')||cats.includes('chip')||cats.includes('cracker'))dept='Snacks';
+      else if(cats.includes('candy')||cats.includes('chocol')||cats.includes('confis'))dept='Confiserie';
+      else if(cats.includes('sauce')||cats.includes('condiment')||cats.includes('ketchup')||cats.includes('mustard'))dept='Condiments';
+      else if(cats.includes('frozen')||cats.includes('surgel'))dept='Surgelé';
+      else if(cats.includes('dairy')||cats.includes('cheese')||cats.includes('yogurt'))dept='Réfrigéré';
+      else if(cats.includes('canadian')||cats.includes('maple'))dept='Canadien';
+      else if(cats.includes('mexican')||cats.includes('mexic'))dept='Mexicain';
+      else dept='Épicerie';
+
+      // Remplir les champs
+      const fullName=brand?`${name} — ${brand}`:name;
+      const nameEl=document.getElementById('aName');if(nameEl&&fullName)nameEl.value=fullName;
+      const deptEl=document.getElementById('aDept');if(deptEl)deptEl.value=dept;
+
+      // Preview
+      if(pp){
+        pp.style.display='block';
+        document.getElementById('ppName').textContent=name||'Nom inconnu';
+        document.getElementById('ppBrand').textContent=brand||'';
+        document.getElementById('ppCat').textContent=dept;
+        const ppImg=document.getElementById('ppImg');
+        if(imgUrl){ppImg.src=imgUrl;ppImg.style.display='block';}
+        else{ppImg.style.display='none';}
+      }
+
+      if(sr){sr.className='scan-result ok';sr.textContent=`✅ Produit trouvé : ${fullName}`;}
+    } else {
+      if(sr){sr.className='scan-result warn';sr.textContent=`⚠️ Code ${code} non trouvé — saisissez manuellement`;}
     }
+  }catch(e){
+    if(sr){sr.className='scan-result err';sr.textContent='❌ Erreur réseau — saisissez manuellement';}
+  }
+}
+
+// ── Scanner temps réel ─────────────────────────────────────
+window.openScanner=async function(){
+  document.getElementById('scanOv').classList.add('show');
+  try{
+    scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{exact:'environment'}}});
+  }catch(e){
+    try{scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});}
+    catch(e2){scanStream=await navigator.mediaDevices.getUserMedia({video:true});}
   }
   const video=document.getElementById('scanVideo');
   video.srcObject=scanStream;
   await video.play();
 
   if('BarcodeDetector' in window){
-    barcodeDetector=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128','code_39','qr_code','itf','codabar']});
+    const detector=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128','code_39','qr_code']});
     scanInterval=setInterval(async()=>{
       if(video.readyState===video.HAVE_ENOUGH_DATA){
         try{
-          const codes=await barcodeDetector.detect(video);
+          const codes=await detector.detect(video);
           if(codes.length>0){
-            handleBarcode(codes[0].rawValue);
+            const code=codes[0].rawValue;
+            // Flash status
+            const st=document.getElementById('scanStatus');
+            if(st){st.style.display='block';st.textContent=`Code détecté: ${code}`;}
+            setTimeout(()=>{closeScanner();handleScanResult(code);},500);
           }
         }catch(e){}
       }
     },300);
   } else {
-    document.querySelector('.scan-hint').textContent='BarcodeDetector non supporté — saisissez manuellement';
+    document.querySelector('.scan-hint').textContent='Scanner non supporté sur ce navigateur';
   }
 };
 
-function handleBarcode(code){
-  closeScanner();
+function handleScanResult(code){
   const bc=document.getElementById('aBarcode');
   if(bc) bc.value=code;
-  const sr=document.getElementById('scanResult');
   const existing=S.products.find(p=>p.barcode===code);
-  if(sr){
-    sr.style.display='block';
-    sr.className=existing?'scan-result warn':'scan-result';
-    sr.textContent=existing?`⚠️ Produit existant: ${existing.name}`:`✅ Code scanné: ${code}`;
+  if(existing){
+    const sr=document.getElementById('scanResult');
+    if(sr){sr.style.display='block';sr.className='scan-result warn';sr.textContent=`⚠️ Produit déjà existant : ${existing.name}`;}
+  } else {
+    lookupBarcode(code);
   }
 }
 
@@ -446,7 +508,7 @@ window.togglePanel=function(){
   document.getElementById('panelModes').innerHTML=SHOPS.map(s=>`
     <div class="mr ${S.shop===s.id?'active':''}" onclick="setShop('${s.id}')">
       <span style="font-size:20px">${s.icon}</span>
-      <div><div style="font-weight:700">${s.name}</div><div style="font-size:11px;opacity:.7">${s.isDepot?'Accès complet':'Magasin'}</div></div>
+      <div><div style="font-weight:700">${s.name}</div><div style="font-size:11px;opacity:.6">${s.isDepot?'Accès complet':'Magasin'}</div></div>
     </div>`).join('');
   document.getElementById('panelOv').classList.add('show');
 };
