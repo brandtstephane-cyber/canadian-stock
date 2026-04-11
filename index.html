@@ -120,7 +120,7 @@ select.fi{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
   <div>
     <h1 id="hTitle">🍁 Canadian & American Market</h1>
     <div class="sub" id="hSub">Chargement...</div>
-    <div class="ver">Version 11</div>
+    <div class="ver">Version 12</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -162,11 +162,29 @@ const FC={apiKey:"AIzaSyC3vf083Qj1l-AxK79LPcvx8F1LdtMtdVw",authDomain:"canadian-
 const app=initializeApp(FC);
 const db=getFirestore(app);
 
-const SHOPS=[
+let SHOPS=[
   {id:'depot',name:'Entrepôt — Rodrigo',icon:'🏭',isDepot:true},
   {id:'nyon',name:'American Market — Nyon',icon:'🏪',isDepot:false},
   {id:'geneve',name:'Maple Corner — Genève',icon:'🍁',isDepot:false}
 ];
+
+async function loadShops(){
+  try{
+    const snap=await getDoc(doc(db,'config','shops'));
+    if(snap.exists()&&snap.data().list&&snap.data().list.length>0){
+      const saved=snap.data().list;
+      // Toujours garder depot en premier
+      const depot={id:'depot',name:'Entrepôt — Rodrigo',icon:'🏭',isDepot:true};
+      SHOPS=[depot,...saved.filter(s=>s.id!=='depot')];
+    }
+  }catch(e){}
+}
+
+async function saveShops(){
+  try{
+    await setDoc(doc(db,'config','shops'),{list:SHOPS});
+  }catch(e){}
+}
 let DEPTS=['Tous','Épicerie','Boissons','Snacks','Condiments','Réfrigéré','Surgelé','Confiserie','Canadien','Mexicain','Divers'];
 
 async function loadDepts(){
@@ -340,6 +358,21 @@ function renderAdmin(){
       <img id="photoPreview" style="display:none;width:100%;height:90px;object-fit:cover;border-radius:12px;margin-bottom:12px;cursor:pointer" onclick="document.getElementById('photoInput').click()">
     </div>
     <button class="btn btn-red" onclick="addProduct()">+ Ajouter le produit</button>
+  </div></div>
+  <div class="st">Gérer les magasins</div>
+  <div class="card"><div class="card-b">
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <input class="fi" id="newShopName" placeholder="Nom du magasin..." style="flex:1">
+      <input class="fi" id="newShopIcon" placeholder="🏪" maxlength="4" style="width:60px">
+    </div>
+    <button class="btn btn-blue" onclick="addShop()" style="margin-bottom:12px">+ Ajouter un magasin</button>
+    <div id="shopList">
+      ${SHOPS.filter(s=>!s.isDepot).map(s=>`
+        <div class="pr" style="padding:6px 0">
+          <div class="pinfo"><div class="pn">${s.icon} ${s.name}</div></div>
+          <button onclick="removeShop('${s.id}')" style="background:none;border:none;font-size:16px;cursor:pointer;color:#f87171">🗑</button>
+        </div>`).join('')}
+    </div>
   </div></div>
   <div class="st">Gérer les départements</div>
   <div class="card"><div class="card-b">
@@ -534,6 +567,30 @@ window.closeScanner=function(){
   document.getElementById('scanOv').classList.remove('show');
 };
 
+window.addShop=async function(){
+  const nameEl=document.getElementById('newShopName');
+  const iconEl=document.getElementById('newShopIcon');
+  const name=nameEl?nameEl.value.trim():'';
+  const icon=iconEl?iconEl.value.trim()||'🏪':'🏪';
+  if(!name){alert('Nom du magasin requis');return;}
+  const id='shop_'+Date.now();
+  SHOPS.push({id,name,icon,isDepot:false});
+  await saveShops();
+  if(nameEl)nameEl.value='';
+  if(iconEl)iconEl.value='';
+  render();
+};
+
+window.removeShop=async function(id){
+  const shop=SHOPS.find(s=>s.id===id);
+  if(!shop)return;
+  if(!confirm(`Supprimer le magasin "${shop.name}" ?`))return;
+  SHOPS=SHOPS.filter(s=>s.id!==id);
+  await saveShops();
+  if(S.shop===id){S.shop='depot';localStorage.setItem('cam_shop','depot');}
+  render();
+};
+
 window.addDept=async function(){
   const el=document.getElementById('newDept');
   const name=el?el.value.trim():'';
@@ -561,7 +618,7 @@ window.togglePanel=function(){
   document.getElementById('panelOv').classList.add('show');
 };
 window.closePanelClick=function(e){if(e.target===document.getElementById('panelOv'))document.getElementById('panelOv').classList.remove('show')};
-window.setShop=function(s){S.shop=s;localStorage.setItem('cam_shop',s);document.getElementById('panelOv').classList.remove('show');loadDepts().then(()=>listen());};
+window.setShop=function(s){S.shop=s;localStorage.setItem('cam_shop',s);document.getElementById('panelOv').classList.remove('show');Promise.all([loadDepts(),loadShops()]).then(()=>listen());};
 
 listen();
 </script>
