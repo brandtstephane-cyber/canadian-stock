@@ -120,7 +120,7 @@ select.fi{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
   <div>
     <h1 id="hTitle">🍁 Canadian & American Market</h1>
     <div class="sub" id="hSub">Chargement...</div>
-    <div class="ver">Version 9</div>
+    <div class="ver">Version 10</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -310,7 +310,7 @@ function renderAdmin(){
       <select class="fi" id="aDept">${DEPTS.filter(d=>d!=='Tous').map(d=>`<option>${d}</option>`).join('')}</select>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div class="fg"><label class="fl">Pièces/carton</label><input class="fi" id="aPiecesBox" type="number" placeholder="12" min="1" value="12"></div>
+      <div class="fg"><label class="fl">Pièces/master case</label><input class="fi" id="aPiecesBox" type="number" placeholder="12" min="1" value="12"></div>
       <div class="fg"><label class="fl">Unité</label><input class="fi" id="aUnit" value="unités"></div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
@@ -330,7 +330,7 @@ function renderAdmin(){
     ${!S.products.length?'<div class="empty">Aucun produit</div>':
       S.products.map(p=>`<div class="pr">
         <div class="pi">${p.photo?`<img src="${p.photo}">`:'📦'}</div>
-        <div class="pinfo"><div class="pn">${p.name}</div><div class="pd">${p.dept||''} ${p.barcode?'· '+p.barcode:''} · Alerte: ${p.minQty||2} · ${p.piecesPerBox||12} pcs/carton</div></div>
+        <div class="pinfo"><div class="pn">${p.name}</div><div class="pd">${p.dept||''} ${p.barcode?'· '+p.barcode:''} · Alerte: ${p.minQty||2} · ${p.piecesPerBox||12} pcs/master case</div></div>
         <button onclick="delProduct('${p.id}')" style="background:none;border:none;font-size:18px;cursor:pointer;color:#f87171">🗑</button>
       </div>`).join('')}
   </div></div>`;
