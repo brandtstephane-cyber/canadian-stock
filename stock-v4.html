@@ -8,7 +8,7 @@
 <title>Canadian & American Market — Stock</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-:root{--red:#C8102E;--bg:#f4f4f4;--white:#fff;--border:#e5e5e5;--text:#1a1a1a;--muted:#666;--green:#16a34a;--green-bg:#dcfce7}
+:root{--red:#C8102E;--bg:#f0f0f0;--white:#fff;--border:#e5e5e5;--text:#1a1a1a;--muted:#666;--green:#16a34a;--green-bg:#dcfce7}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;max-width:480px;margin:0 auto}
 .hdr{background:var(--red);color:#fff;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.2)}
 .hdr h1{font-size:15px;font-weight:700}
@@ -41,8 +41,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .qc{display:flex;align-items:center;gap:6px}
 .qb{width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:var(--bg);cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;font-weight:600}
 .qb:active{background:var(--border)}
-.qty .qn{font-size:18px;font-weight:700;line-height:1;min-width:28px;text-align:center}
-.qty .qu{font-size:10px;color:var(--muted);text-align:center}
+.qn{font-size:18px;font-weight:700;line-height:1;min-width:28px;text-align:center}
+.qu{font-size:10px;color:var(--muted);text-align:center}
 .fg{margin-bottom:12px}
 .fl{font-size:12px;font-weight:600;color:var(--muted);margin-bottom:4px;display:block;text-transform:uppercase;letter-spacing:.5px}
 .fi{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:#fff;color:var(--text);outline:none}
@@ -64,7 +64,7 @@ select.fi{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
 .dc.active{background:var(--red);color:#fff;border-color:var(--red)}
 .panel-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:flex-end}
 .panel-ov.show{display:flex}
-.panel-box{background:#fff;width:100%;max-width:480px;margin:0 auto;border-radius:20px 20px 0 0;padding:20px 16px 36px}
+.panel-box{background:#fff;width:100%;max-width:480px;margin:0 auto;border-radius:20px 20px 0 0;padding:20px 16px 36px;max-height:80vh;overflow-y:auto}
 .panel-title{font-size:16px;font-weight:700;margin-bottom:16px;text-align:center}
 .mr{display:flex;align-items:center;padding:12px 14px;border-radius:12px;border:1px solid var(--border);margin-bottom:8px;cursor:pointer;font-size:14px;font-weight:500;gap:10px}
 .mr.active{background:var(--red);color:#fff;border-color:var(--red)}
@@ -87,7 +87,6 @@ select.fi{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
 .scan-result{background:#dcfce7;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:13px;color:#166534;display:none}
 .scan-result.warn{background:#fef3c7;color:#92400e}
 .photo-area{width:100%;height:90px;border:2px dashed var(--border);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;background:var(--bg);margin-bottom:12px;font-size:13px;color:var(--muted);gap:4px}
-.photo-preview{width:100%;height:90px;object-fit:cover;border-radius:12px;margin-bottom:12px;cursor:pointer}
 </style>
 </head>
 <body>
@@ -113,8 +112,9 @@ select.fi{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
   </div>
 </div>
 
-<!-- Inputs cachés pour scanner et photo -->
+<!-- Input caché pour scanner (prend une photo et lit le code-barres) -->
 <input type="file" id="scanInput" accept="image/*" capture="environment" style="display:none" onchange="processScanImage(this)">
+<!-- Input caché pour photo produit -->
 <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none" onchange="handlePhoto(this)">
 
 <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
@@ -134,9 +134,9 @@ const app = initializeApp(FC);
 const db = getFirestore(app);
 
 const SHOPS = [
-  {id:'depot', name:'Entrepôt — Rodrigo', icon:'🏭'},
-  {id:'nyon',  name:'American Market — Nyon', icon:'🏪'},
-  {id:'geneve',name:'Maple Corner — Genève', icon:'🍁'}
+  {id:'depot', name:'Entrepôt — Rodrigo', icon:'🏭', isDepot:true},
+  {id:'nyon',  name:'American Market — Nyon', icon:'🏪', isDepot:false},
+  {id:'geneve',name:'Maple Corner — Genève', icon:'🍁', isDepot:false}
 ];
 const DEPTS = ['Tous','Épicerie','Boissons','Snacks','Condiments','Réfrigéré','Surgelé','Confiserie','Canadien','Mexicain','Divers'];
 
@@ -144,12 +144,14 @@ const S = {
   shop: localStorage.getItem('cam_shop')||'depot',
   mode: localStorage.getItem('cam_mode')||'stock',
   tab: 0,
-  products: [], orders: [],
+  products:[], orders:[],
   cart: JSON.parse(localStorage.getItem('cam_cart')||'[]'),
-  search: '', dept: 'Tous',
-  unsubs: [],
-  photoData: null
+  search:'', dept:'Tous',
+  unsubs:[],
+  photoData:null
 };
+
+function isDepot(){ return S.shop==='depot'; }
 
 function listen(){
   S.unsubs.forEach(u=>u()); S.unsubs=[];
@@ -169,6 +171,8 @@ function listen(){
 function render(){
   const shop=SHOPS.find(s=>s.id===S.shop);
   document.getElementById('hTitle').textContent=`${shop.icon} ${shop.name}`;
+  // Si le mode actuel est admin mais qu'on n'est pas à l'entrepôt, basculer sur stock
+  if(S.mode==='admin' && !isDepot()) S.mode='stock';
   document.getElementById('hSub').textContent={stock:'📦 Gestion du stock',order:'🛒 Commandes',admin:'⚙️ Administration',recap:'📊 Récapitulatif'}[S.mode]||'';
   renderNav();
   const c=document.getElementById('content');
@@ -181,10 +185,11 @@ function render(){
 function renderNav(){
   const low=S.products.filter(p=>(p.qty||0)<=(p.minQty||2)).length;
   const pend=S.orders.filter(o=>o.status==='pending').length;
+  // Onglet Admin uniquement pour l'entrepôt
   const tabs=[
     {id:'stock',ic:'📦',lb:'Stock',bdg:low},
     {id:'order',ic:'🛒',lb:'Commandes',bdg:S.cart.length+pend},
-    {id:'admin',ic:'⚙️',lb:'Admin',bdg:0},
+    ...(isDepot()?[{id:'admin',ic:'⚙️',lb:'Admin',bdg:0}]:[]),
     {id:'recap',ic:'📊',lb:'Récap',bdg:0}
   ];
   document.getElementById('nav').innerHTML=tabs.map(t=>`
@@ -219,7 +224,7 @@ function prodRow(p){
     </div>
     <div class="qc">
       <button class="qb" onclick="chQty('${p.id}',-1)">−</button>
-      <div class="qty">
+      <div>
         <div class="qn" style="color:${qty===0?'#b91c1c':qty<=min?'#92400e':'var(--text)'}">${qty}</div>
         <div class="qu">${p.unit||'u.'}</div>
       </div>
@@ -272,6 +277,7 @@ function renderOrder(){
 }
 
 function renderAdmin(){
+  if(!isDepot()) return `<div class="empty">⛔ Accès réservé à l'entrepôt</div>`;
   return `
   <div class="st">Ajouter un produit</div>
   <div class="card"><div class="card-b">
@@ -283,7 +289,7 @@ function renderAdmin(){
       <input class="fi" id="aBarcode" placeholder="Scanné ou saisir manuellement" inputmode="numeric">
     </div>
     <div class="fg"><label class="fl">Nom du produit *</label>
-      <input class="fi" id="aName" placeholder="Ex: Maple Syrup Amber">
+      <input class="fi" id="aName" placeholder="Ex: Dr Pepper 355ml">
     </div>
     <div class="fg"><label class="fl">Département</label>
       <select class="fi" id="aDept">${DEPTS.filter(d=>d!=='Tous').map(d=>`<option>${d}</option>`).join('')}</select>
@@ -298,8 +304,7 @@ function renderAdmin(){
     </div>
     <div class="fg"><label class="fl">Photo produit</label>
       <div id="photoArea" class="photo-area" onclick="document.getElementById('photoInput').click()">
-        <span style="font-size:24px">📷</span>
-        <span>Prendre / choisir une photo</span>
+        <span style="font-size:24px">📷</span><span>Prendre / choisir une photo</span>
       </div>
       <img id="photoPreview" style="display:none;width:100%;height:90px;object-fit:cover;border-radius:12px;margin-bottom:12px;cursor:pointer" onclick="document.getElementById('photoInput').click()">
     </div>
@@ -336,7 +341,7 @@ function renderRecap(){
   return h;
 }
 
-// Actions
+// ── Actions ────────────────────────────────────────────────
 window.setMode=function(m){S.mode=m;S.tab=0;localStorage.setItem('cam_mode',m);render()};
 window.setTab=function(t){S.tab=t;render()};
 window.setSrch=function(v){S.search=v;render()};
@@ -345,27 +350,45 @@ window.chQty=async function(id,d){const p=S.products.find(x=>x.id===id);if(!p)re
 window.addCart=function(id){const p=S.products.find(x=>x.id===id);if(!p)return;const i=S.cart.findIndex(c=>c.id===id);if(i>=0)S.cart[i].qty++;else S.cart.push({id,name:p.name,emoji:p.emoji||'📦',qty:1});localStorage.setItem('cam_cart',JSON.stringify(S.cart));renderNav();render();};
 window.cQty=function(id,d){const i=S.cart.findIndex(c=>c.id===id);if(i<0)return;S.cart[i].qty+=d;if(S.cart[i].qty<=0)S.cart.splice(i,1);localStorage.setItem('cam_cart',JSON.stringify(S.cart));render();};
 window.clearCart=function(){S.cart=[];localStorage.setItem('cam_cart','[]');render()};
-window.sendOrder=async function(){if(!S.cart.length){alert('Panier vide');return;}const shop=SHOPS.find(s=>s.id===S.shop);await addDoc(collection(db,`shops/${S.shop}/orders`),{shopId:S.shop,shopName:shop.name,items:S.cart.map(x=>({...x,done:false})),date:new Date().toLocaleString('fr-CH'),status:'pending',createdAt:serverTimestamp()});S.cart=[];localStorage.setItem('cam_cart','[]');alert('✅ Commande envoyée !');S.tab=2;render();};
+window.sendOrder=async function(){
+  if(!S.cart.length){alert('Panier vide');return;}
+  const shop=SHOPS.find(s=>s.id===S.shop);
+  await addDoc(collection(db,`shops/${S.shop}/orders`),{
+    shopId:S.shop,shopName:shop.name,
+    items:S.cart.map(x=>({...x,done:false})),
+    date:new Date().toLocaleString('fr-CH'),
+    status:'pending',createdAt:serverTimestamp()
+  });
+  S.cart=[];localStorage.setItem('cam_cart','[]');
+  alert('✅ Commande envoyée !');S.tab=2;render();
+};
 window.markDone=async function(id){await updateDoc(doc(db,`shops/${S.shop}/orders`,id),{status:'done'});};
 window.addProduct=async function(){
   const name=document.getElementById('aName').value.trim();
   if(!name){alert('Nom requis');return;}
   await addDoc(collection(db,`shops/${S.shop}/products`),{
-    name,barcode:document.getElementById('aBarcode').value.trim()||null,
+    name,
+    barcode:document.getElementById('aBarcode').value.trim()||null,
     dept:document.getElementById('aDept').value,
     emoji:document.getElementById('aEmoji').value||'📦',
     unit:document.getElementById('aUnit').value||'unités',
     qty:parseInt(document.getElementById('aQty').value)||0,
     minQty:parseInt(document.getElementById('aMin').value)||2,
-    photo:S.photoData||null,createdAt:serverTimestamp()
+    photo:S.photoData||null,
+    createdAt:serverTimestamp()
   });
   S.photoData=null;
   ['aName','aBarcode','aEmoji'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const sr=document.getElementById('scanResult');
+  if(sr) sr.style.display='none';
+  const prev=document.getElementById('photoPreview');
+  const area=document.getElementById('photoArea');
+  if(prev&&area){prev.style.display='none';area.style.display='flex';}
   render();
 };
-window.delProduct=async function(id){if(!confirm('Supprimer ?'))return;await deleteDoc(doc(db,`shops/${S.shop}/products`,id));};
+window.delProduct=async function(id){if(!confirm('Supprimer ce produit ?'))return;await deleteDoc(doc(db,`shops/${S.shop}/products`,id));};
 
-// Photo produit
+// ── Photo produit ──────────────────────────────────────────
 window.handlePhoto=function(input){
   const file=input.files[0];if(!file)return;
   const r=new FileReader();
@@ -378,17 +401,18 @@ window.handlePhoto=function(input){
   r.readAsDataURL(file);
 };
 
-// Scanner via photo
+// ── Scanner via photo ──────────────────────────────────────
 window.processScanImage=function(input){
   const file=input.files[0];if(!file)return;
   const url=URL.createObjectURL(file);
+  const sr=document.getElementById('scanResult');
   if(typeof Quagga!=='undefined'){
     Quagga.decodeSingle({
       decoder:{readers:['ean_reader','ean_8_reader','upc_reader','upc_e_reader','code_128_reader','code_39_reader']},
-      locate:true,src:url
+      locate:true,
+      src:url
     },result=>{
       URL.revokeObjectURL(url);
-      const sr=document.getElementById('scanResult');
       if(result&&result.codeResult){
         const code=result.codeResult.code;
         const bc=document.getElementById('aBarcode');
@@ -396,31 +420,34 @@ window.processScanImage=function(input){
         const existing=S.products.find(p=>p.barcode===code);
         if(sr){
           sr.style.display='block';
-          sr.className=`scan-result${existing?' warn':''}`;
+          sr.className=existing?'scan-result warn':'scan-result';
           sr.textContent=existing?`⚠️ Produit existant: ${existing.name}`:`✅ Code scanné: ${code}`;
         }
       } else {
-        if(sr){sr.style.display='block';sr.className='scan-result warn';sr.textContent='❌ Code-barres non détecté — saisissez manuellement';}
+        if(sr){sr.style.display='block';sr.className='scan-result warn';sr.textContent='❌ Code non détecté — saisissez manuellement';}
       }
       input.value='';
     });
   } else {
-    const sr=document.getElementById('scanResult');
-    if(sr){sr.style.display='block';sr.className='scan-result warn';sr.textContent='Saisissez le code-barres manuellement ci-dessous';}
+    if(sr){sr.style.display='block';sr.className='scan-result warn';sr.textContent='Saisissez le code-barres manuellement';}
   }
 };
 
-// Panel
+// ── Panel ──────────────────────────────────────────────────
 window.togglePanel=function(){
   document.getElementById('panelModes').innerHTML=SHOPS.map(s=>`
     <div class="mr ${S.shop===s.id?'active':''}" onclick="setShop('${s.id}')">
       <span style="font-size:20px">${s.icon}</span>
-      <div><div style="font-weight:700">${s.name}</div></div>
+      <div><div style="font-weight:700">${s.name}</div><div style="font-size:11px;opacity:.7">${s.isDepot?'Accès complet':'Magasin'}</div></div>
     </div>`).join('');
   document.getElementById('panelOv').classList.add('show');
 };
 window.closePanelClick=function(e){if(e.target===document.getElementById('panelOv'))document.getElementById('panelOv').classList.remove('show')};
-window.setShop=function(s){S.shop=s;localStorage.setItem('cam_shop',s);document.getElementById('panelOv').classList.remove('show');listen();};
+window.setShop=function(s){
+  S.shop=s;localStorage.setItem('cam_shop',s);
+  document.getElementById('panelOv').classList.remove('show');
+  listen();
+};
 
 listen();
 </script>
