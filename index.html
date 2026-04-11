@@ -120,7 +120,7 @@ select.fi{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
   <div>
     <h1 id="hTitle">🍁 Canadian & American Market</h1>
     <div class="sub" id="hSub">Chargement...</div>
-    <div class="ver">Version 8</div>
+    <div class="ver">Version 9</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -239,7 +239,7 @@ function prodRow(p){
   const qty=p.qty||0,min=p.minQty||2;
   const sc=qty===0?'out':qty<=min?'low':'ok';
   const sl=qty===0?'Épuisé':qty<=min?'Faible':'OK';
-  const img=p.photo?`<img src="${p.photo}" onerror="this.style.display='none'">`:p.emoji||'📦';
+  const img=p.photo?`<img src="${p.photo}" onerror="this.parentElement.textContent='📦'">`:"📦";
   return `<div class="pr">
     <div class="pi">${img}</div>
     <div class="pinfo"><div class="pn">${p.name}</div><div class="pd">${p.dept||''} ${p.barcode?'· '+p.barcode:''} <span class="chip ${sc}">${sl}</span></div></div>
@@ -262,7 +262,7 @@ function renderOrder(){
     if(!low.length)return h+`<div class="empty">✅ Rien à commander !</div>`;
     return h+`<div class="card"><div class="card-b">${low.map(p=>`
       <div class="pr">
-        <div class="pi">${p.photo?`<img src="${p.photo}">`:p.emoji||'📦'}</div>
+        <div class="pi">${p.photo?`<img src="${p.photo}">`:'📦'}</div>
         <div class="pinfo"><div class="pn">${p.name}</div><div class="pd">Stock: ${p.qty||0}</div></div>
         <button class="btn btn-red btn-sm" onclick="addCart('${p.id}')">${S.cart.find(c=>c.id===p.id)?'✓':'+ Ajouter'}</button>
       </div>`).join('')}</div></div>`;
@@ -271,7 +271,7 @@ function renderOrder(){
     if(!S.cart.length)return h+`<div class="empty">Panier vide</div>`;
     return h+`<div class="card"><div class="card-h"><h3>Ma commande</h3></div><div class="card-b">
       ${S.cart.map(item=>{const p=S.products.find(x=>x.id===item.id)||item;return`
-        <div class="oi"><div>${p.emoji||'📦'} ${p.name}</div>
+        <div class="oi"><div>${p.name}</div>
         <div class="qc"><button class="qb" onclick="cQty('${item.id}',-1)">−</button>
         <span style="min-width:20px;text-align:center;font-weight:700">${item.qty}</span>
         <button class="qb" onclick="cQty('${item.id}',1)">+</button></div></div>`}).join('')}
@@ -310,7 +310,7 @@ function renderAdmin(){
       <select class="fi" id="aDept">${DEPTS.filter(d=>d!=='Tous').map(d=>`<option>${d}</option>`).join('')}</select>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div class="fg"><label class="fl">Emoji</label><input class="fi" id="aEmoji" placeholder="🍁" maxlength="4"></div>
+      <div class="fg"><label class="fl">Pièces/carton</label><input class="fi" id="aPiecesBox" type="number" placeholder="12" min="1" value="12"></div>
       <div class="fg"><label class="fl">Unité</label><input class="fi" id="aUnit" value="unités"></div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
@@ -329,8 +329,8 @@ function renderAdmin(){
   <div class="card"><div class="card-b">
     ${!S.products.length?'<div class="empty">Aucun produit</div>':
       S.products.map(p=>`<div class="pr">
-        <div class="pi">${p.photo?`<img src="${p.photo}">`:p.emoji||'📦'}</div>
-        <div class="pinfo"><div class="pn">${p.name}</div><div class="pd">${p.dept||''} ${p.barcode?'· '+p.barcode:''} · Alerte: ${p.minQty||2}</div></div>
+        <div class="pi">${p.photo?`<img src="${p.photo}">`:'📦'}</div>
+        <div class="pinfo"><div class="pn">${p.name}</div><div class="pd">${p.dept||''} ${p.barcode?'· '+p.barcode:''} · Alerte: ${p.minQty||2} · ${p.piecesPerBox||12} pcs/carton</div></div>
         <button onclick="delProduct('${p.id}')" style="background:none;border:none;font-size:18px;cursor:pointer;color:#f87171">🗑</button>
       </div>`).join('')}
   </div></div>`;
@@ -358,7 +358,7 @@ window.setTab=function(t){S.tab=t;render()};
 window.setSrch=function(v){S.search=v;render()};
 window.setDept=function(d){S.dept=d;render()};
 window.chQty=async function(id,d){const p=S.products.find(x=>x.id===id);if(!p)return;await updateDoc(doc(db,`shops/${S.shop}/products`,id),{qty:Math.max(0,(p.qty||0)+d)});};
-window.addCart=function(id){const p=S.products.find(x=>x.id===id);if(!p)return;const i=S.cart.findIndex(c=>c.id===id);if(i>=0)S.cart[i].qty++;else S.cart.push({id,name:p.name,emoji:p.emoji||'📦',qty:1});localStorage.setItem('cam_cart',JSON.stringify(S.cart));renderNav();render();};
+window.addCart=function(id){const p=S.products.find(x=>x.id===id);if(!p)return;const i=S.cart.findIndex(c=>c.id===id);if(i>=0)S.cart[i].qty++;else S.cart.push({id,name:p.name,qty:1});localStorage.setItem('cam_cart',JSON.stringify(S.cart));renderNav();render();};
 window.cQty=function(id,d){const i=S.cart.findIndex(c=>c.id===id);if(i<0)return;S.cart[i].qty+=d;if(S.cart[i].qty<=0)S.cart.splice(i,1);localStorage.setItem('cam_cart',JSON.stringify(S.cart));render();};
 window.clearCart=function(){S.cart=[];localStorage.setItem('cam_cart','[]');render()};
 window.sendOrder=async function(){
@@ -374,14 +374,14 @@ window.addProduct=async function(){
   await addDoc(collection(db,`shops/${S.shop}/products`),{
     name,barcode:document.getElementById('aBarcode').value.trim()||null,
     dept:document.getElementById('aDept').value,
-    emoji:document.getElementById('aEmoji').value||'📦',
+    piecesPerBox:parseInt(document.getElementById('aPiecesBox').value)||12,
     unit:document.getElementById('aUnit').value||'unités',
     qty:parseInt(document.getElementById('aQty').value)||0,
     minQty:parseInt(document.getElementById('aMin').value)||2,
     photo:S.photoData||null,createdAt:serverTimestamp()
   });
   S.photoData=null;
-  ['aName','aBarcode','aEmoji'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['aName','aBarcode'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});const pb=document.getElementById('aPiecesBox');if(pb)pb.value='12';
   const sr=document.getElementById('scanResult');if(sr)sr.style.display='none';
   const pp=document.getElementById('productPreview');if(pp)pp.style.display='none';
   const prev=document.getElementById('photoPreview');const area=document.getElementById('photoArea');
