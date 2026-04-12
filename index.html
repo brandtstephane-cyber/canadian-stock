@@ -136,7 +136,7 @@ select.fi{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
   <div>
     <h1 id="hTitle">🍁 Canadian & American Market</h1>
     <div class="sub" id="hSub">Chargement...</div>
-    <div class="ver">Version 22</div>
+    <div class="ver">Version 23</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -314,17 +314,50 @@ function isDepot(){return S.shop==='depot';}
 
 function listen(){
   S.unsubs.forEach(u=>u());S.unsubs=[];
-  const q1=query(collection(db,`shops/${S.shop}/products`),orderBy('name'));
+  
+  // Catalogue commun — tous les produits
+  const q1=query(collection(db,'products'),orderBy('name'));
   S.unsubs.push(onSnapshot(q1,snap=>{
-    S.products=snap.docs.map(d=>({id:d.id,...d.data()}));
-    render();
-    document.getElementById('syncDot').className='dot';
+    const catalogue=snap.docs.map(d=>({id:d.id,...d.data()}));
+    // Charger le stock du magasin actuel
+    getDoc(doc(db,`shops/${S.shop}/meta/stock`)).then(stockSnap=>{
+      const stockData=stockSnap.exists()?stockSnap.data():{};
+      // Fusionner catalogue + stock local
+      S.products=catalogue.map(p=>({
+        ...p,
+        qty: stockData[p.id]!==undefined ? stockData[p.id] : (p.qty||0)
+      }));
+      render();
+      document.getElementById('syncDot').className='dot';
+    }).catch(()=>{
+      S.products=catalogue;
+      render();
+      document.getElementById('syncDot').className='dot';
+    });
   },()=>document.getElementById('syncDot').className='dot off'));
-  const q2=query(collection(db,`shops/${S.shop}/orders`),orderBy('createdAt','desc'));
-  S.unsubs.push(onSnapshot(q2,snap=>{
-    S.orders=snap.docs.map(d=>({id:d.id,...d.data()}));
-    renderNav();
-  }));
+
+  // Commandes — par magasin
+  if(!isDepot()){
+    const q2=query(collection(db,`shops/${S.shop}/orders`),orderBy('createdAt','desc'));
+    S.unsubs.push(onSnapshot(q2,snap=>{
+      S.orders=snap.docs.map(d=>({id:d.id,...d.data()}));
+      renderNav();
+    }));
+  } else {
+    // Rodrigo voit toutes les commandes de tous les magasins
+    S.orders=[];
+    SHOPS.filter(s=>!s.isDepot).forEach(shop=>{
+      const q=query(collection(db,`shops/${shop.id}/orders`),orderBy('createdAt','desc'));
+      S.unsubs.push(onSnapshot(q,snap=>{
+        const shopOrders=snap.docs.map(d=>({id:d.id,shopId:shop.id,shopName:shop.name,...d.data()}));
+        // Remplacer les commandes de ce magasin
+        S.orders=S.orders.filter(o=>o.shopId!==shop.id).concat(shopOrders);
+        S.orders.sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+        renderNav();
+        if(S.mode==='order')render();
+      }));
+    });
+  }
 }
 
 function render(){
@@ -411,9 +444,9 @@ function renderOrder(){
     <button class="btn btn-out" onclick="clearCart()">🗑 Vider</button>`;
   }
   if(!S.orders.length)return h+`<div class="empty">Aucune commande</div>`;
-  return h+S.orders.slice(0,10).map(o=>`
+  return h+(isDepot()?'<div class="st">Commandes de tous les magasins</div>':'')+S.orders.slice(0,20).map(o=>`
     <div class="card">
-      <div class="card-h"><h3>${o.date||''}</h3><span class="chip ${o.status==='done'?'ok':'low'}">${o.status==='done'?'Livrée':'En attente'}</span></div>
+      <div class="card-h"><h3>${o.shopName?o.shopName+' — ':''} ${o.date||''}</h3><span class="chip ${o.status==='done'?'ok':'low'}">${o.status==='done'?'Livrée':'En attente'}</span></div>
       <div class="card-b">
         ${(o.items||[]).map(i=>`<div class="oi ${i.done?'oid':''}"><span>${i.name}</span><span>×${i.qty}</span></div>`).join('')}
         ${o.status!=='done'?`<button class="btn btn-green btn-sm" style="margin-top:8px" onclick="markDone('${o.id}')">✓ Marquer livrée</button>`:''}
@@ -521,7 +554,20 @@ window.setMode=function(m){S.mode=m;S.tab=0;localStorage.setItem('cam_mode',m);r
 window.setTab=function(t){S.tab=t;render()};
 window.setSrch=function(v){S.search=v;render()};
 window.setDept=function(d){S.dept=d;render()};
-window.chQty=async function(id,d){const p=S.products.find(x=>x.id===id);if(!p)return;await updateDoc(doc(db,`shops/${S.shop}/products`,id),{qty:Math.max(0,(p.qty||0)+d)});};
+window.chQty=async function(id,d){
+  const p=S.products.find(x=>x.id===id);if(!p)return;
+  const newQty=Math.max(0,(p.qty||0)+d);
+  // Mettre à jour stock local du magasin
+  const stockRef=doc(db,`shops/${S.shop}/meta/stock`);
+  const stockSnap=await getDoc(stockRef);
+  const stockData=stockSnap.exists()?stockSnap.data():{};
+  stockData[id]=newQty;
+  await setDoc(stockRef,stockData);
+  // Si c'est Rodrigo, mettre à jour aussi le catalogue commun
+  if(isDepot()){
+    await updateDoc(doc(db,'products',id),{qty:newQty});
+  }
+};
 window.addCart=function(id){const p=S.products.find(x=>x.id===id);if(!p)return;const i=S.cart.findIndex(c=>c.id===id);if(i>=0)S.cart[i].qty++;else S.cart.push({id,name:p.name,qty:1});localStorage.setItem('cam_cart',JSON.stringify(S.cart));renderNav();render();};
 window.cQty=function(id,d){const i=S.cart.findIndex(c=>c.id===id);if(i<0)return;S.cart[i].qty+=d;if(S.cart[i].qty<=0)S.cart.splice(i,1);localStorage.setItem('cam_cart',JSON.stringify(S.cart));render();};
 window.clearCart=function(){S.cart=[];localStorage.setItem('cam_cart','[]');render()};
@@ -535,7 +581,7 @@ window.markDone=async function(id){await updateDoc(doc(db,`shops/${S.shop}/order
 window.addProduct=async function(){
   const name=document.getElementById('aName').value.trim();
   if(!name){alert('Nom requis');return;}
-  await addDoc(collection(db,`shops/${S.shop}/products`),{
+  await addDoc(collection(db,'products'),{
     name,barcode:document.getElementById('aBarcode').value.trim()||null,
     dept:document.getElementById('aDept').value,
     piecesPerBox:parseInt(document.getElementById('aPiecesBox').value)||12,
@@ -561,7 +607,7 @@ window.addProduct=async function(){
   if(prev&&area){prev.style.display='none';area.style.display='flex';}
   render();
 };
-window.delProduct=async function(id){if(!confirm('Supprimer ?'))return;await deleteDoc(doc(db,`shops/${S.shop}/products`,id));};
+window.delProduct=async function(id){if(!confirm('Supprimer ce produit de tout le catalogue ?'))return;await deleteDoc(doc(db,'products',id));};
 
 window.handlePhoto=function(input){
   const file=input.files[0];if(!file)return;
