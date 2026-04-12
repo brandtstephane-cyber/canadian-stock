@@ -136,7 +136,7 @@ select.fi{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
   <div>
     <h1 id="hTitle">🍁 Canadian & American Market</h1>
     <div class="sub" id="hSub">Chargement...</div>
-    <div class="ver">Version 21</div>
+    <div class="ver">Version 22</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -198,6 +198,7 @@ select.fi{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
 </div>
 
 <input type="file" id="photoInput" accept="image/*" style="display:none" onchange="handlePhoto(this)">
+<input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none" onchange="handlePhoto(this)">
 
 <script>
 // Fonctions PIN - script classique accessible depuis onclick HTML
@@ -452,8 +453,9 @@ function renderAdmin(){
     </div>
     <div class="fg"><label class="fl">Seuil alerte (cartons)</label><input class="fi" id="aMin" type="number" placeholder="2" min="0"></div>
     <div class="fg"><label class="fl">Photo produit</label>
-      <div id="photoArea" class="photo-area" onclick="document.getElementById('photoInput').click()">
-        <span style="font-size:24px">📷</span><span>Prendre / choisir une photo</span>
+      <div id="photoArea" style="display:flex;gap:8px;margin-bottom:12px">
+        <button class="btn btn-blue btn-sm" style="flex:1;padding:12px" onclick="document.getElementById('cameraInput').click()">📷 Prendre une photo</button>
+        <button class="btn btn-out btn-sm" style="flex:1;padding:12px" onclick="document.getElementById('photoInput').click()">🖼 Galerie</button>
       </div>
       <img id="photoPreview" style="display:none;width:100%;height:90px;object-fit:cover;border-radius:12px;margin-bottom:12px;cursor:pointer" onclick="document.getElementById('photoInput').click()">
     </div>
