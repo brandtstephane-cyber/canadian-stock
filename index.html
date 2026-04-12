@@ -134,7 +134,7 @@ select.fi{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
   <div>
     <h1 id="hTitle">🍁 Canadian Market</h1>
     <div class="sub" id="hSub">Chargement...</div>
-    <div class="ver">Version 26</div>
+    <div class="ver">Version 27</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -400,7 +400,7 @@ function prodRow(p){
   const sc=qty===0?'out':qty<=min?'low':'ok';
   const sl=qty===0?'Épuisé':qty<=min?'Faible':'OK';
   const img=p.photo?`<img src="${p.photo}" onerror="this.parentElement.textContent='📦'">`:p.emoji||'📦';
-  return `<div class="pr" style="${isDepot()?'cursor:pointer':''}" onclick="${isDepot()?`openProductModal('${p.id}')`:''}"><div class="pi">${img}</div>
+  return `<div class="pr"><div class="pi" style="${isDepot()?'cursor:pointer':''}" onclick="openProductModal('${p.id}')">${img}</div>
     <div class="pinfo"><div class="pn">${p.name}</div><div class="pd">${p.dept||''} <span class="chip ${sc}">${sl}</span></div></div>
     <div class="qc">
       <button class="qb" onclick="chQty('${p.id}',-1)">−</button>
