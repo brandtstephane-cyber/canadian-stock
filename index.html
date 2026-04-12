@@ -136,7 +136,7 @@ select.fi{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
   <div>
     <h1 id="hTitle">🍁 Canadian & American Market</h1>
     <div class="sub" id="hSub">Chargement...</div>
-    <div class="ver">Version 18</div>
+    <div class="ver">Version 19</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -198,6 +198,58 @@ select.fi{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
 </div>
 
 <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none" onchange="handlePhoto(this)">
+
+<script>
+// Fonctions PIN - script classique accessible depuis onclick HTML
+var pinCode='';
+var PINS={'0000':'depot','1111':'geneve','2222':'vevey'};
+
+function pinPress(d){
+  if(pinCode.length>=4)return;
+  pinCode+=d;
+  for(var i=0;i<4;i++){
+    var dot=document.getElementById('pd'+i);
+    if(dot)dot.className='pin-dot'+(i<pinCode.length?' filled':'');
+  }
+  if(pinCode.length===4)setTimeout(checkPin,200);
+}
+
+function pinDel(){
+  if(pinCode.length===0)return;
+  pinCode=pinCode.slice(0,-1);
+  for(var i=0;i<4;i++){
+    var dot=document.getElementById('pd'+i);
+    if(dot)dot.className='pin-dot'+(i<pinCode.length?' filled':'');
+  }
+  document.getElementById('pinError').textContent='';
+}
+
+function checkPin(){
+  var shop=PINS[pinCode];
+  if(shop){
+    // Communiquer le shop au module via un event
+    document.dispatchEvent(new CustomEvent('pinSuccess',{detail:{shop:shop}}));
+  } else {
+    document.getElementById('pinError').textContent='Code incorrect — réessayez';
+    pinCode='';
+    for(var i=0;i<4;i++){
+      var dot=document.getElementById('pd'+i);
+      if(dot)dot.className='pin-dot';
+    }
+  }
+}
+
+function lockApp(){
+  document.getElementById('panelOv').classList.remove('show');
+  pinCode='';
+  for(var i=0;i<4;i++){
+    var dot=document.getElementById('pd'+i);
+    if(dot)dot.className='pin-dot';
+  }
+  document.getElementById('pinError').textContent='';
+  document.getElementById('pinScreen').style.display='flex';
+}
+</script>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -692,49 +744,16 @@ window.lockApp=function(){
 
 window.closePanelClick=function(e){if(e.target===document.getElementById('panelOv'))document.getElementById('panelOv').classList.remove('show')};
 window.setShop=function(s){S.shop=s;localStorage.setItem('cam_shop',s);document.getElementById('panelOv').classList.remove('show');
-// ── PIN ───────────────────────────────────────────────────
-const PINS={'0000':'depot','1111':'geneve','2222':'vevey'};
-let pinCode='';
+// Écouter le succès du PIN
+document.addEventListener('pinSuccess',function(e){
+  S.shop=e.detail.shop;
+  localStorage.setItem('cam_shop',S.shop);
+  document.getElementById('pinScreen').style.display='none';
+  listen();
+});
 
-window.pinPress=function(d){
-  if(pinCode.length>=4)return;
-  pinCode+=d;
-  for(let i=0;i<4;i++){
-    const dot=document.getElementById('pd'+i);
-    if(dot)dot.className='pin-dot'+(i<pinCode.length?' filled':'');
-  }
-  if(pinCode.length===4)setTimeout(checkPin,200);
-};
-
-window.pinDel=function(){
-  pinCode=pinCode.slice(0,-1);
-  for(let i=0;i<4;i++){
-    const dot=document.getElementById('pd'+i);
-    if(dot)dot.className='pin-dot'+(i<pinCode.length?' filled':'');
-  }
-  document.getElementById('pinError').textContent='';
-};
-
-function checkPin(){
-  const shop=PINS[pinCode];
-  if(shop){
-    S.shop=shop;
-    localStorage.setItem('cam_shop',shop);
-    document.getElementById('pinScreen').style.display='none';
-    listen();
-  } else {
-    document.getElementById('pinError').textContent='Code incorrect — réessayez';
-    pinCode='';
-    for(let i=0;i<4;i++){
-      const dot=document.getElementById('pd'+i);
-      if(dot)dot.className='pin-dot';
-    }
-  }
-}
-
-// Charger Firebase config au démarrage
+// Charger Firebase config au démarrage puis afficher PIN
 Promise.all([loadDepts(),loadShops()]).then(()=>{
-  // Afficher l'écran PIN
   document.getElementById('pinScreen').style.display='flex';
 });
 
