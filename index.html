@@ -136,7 +136,7 @@ select.fi{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
   <div>
     <h1 id="hTitle">🍁 Canadian & American Market</h1>
     <div class="sub" id="hSub">Chargement...</div>
-    <div class="ver">Version 17</div>
+    <div class="ver">Version 18</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -693,55 +693,50 @@ window.lockApp=function(){
 window.closePanelClick=function(e){if(e.target===document.getElementById('panelOv'))document.getElementById('panelOv').classList.remove('show')};
 window.setShop=function(s){S.shop=s;localStorage.setItem('cam_shop',s);document.getElementById('panelOv').classList.remove('show');
 // ── PIN ───────────────────────────────────────────────────
-const PINS={
-  '0000':{shop:'depot'},
-  '1111':{shop:'geneve'},
-  '2222':{shop:'vevey'}
-};
-
+const PINS={'0000':'depot','1111':'geneve','2222':'vevey'};
 let pinCode='';
 
 window.pinPress=function(d){
   if(pinCode.length>=4)return;
   pinCode+=d;
-  updatePinDots();
-  if(pinCode.length===4) setTimeout(checkPin,150);
+  for(let i=0;i<4;i++){
+    const dot=document.getElementById('pd'+i);
+    if(dot)dot.className='pin-dot'+(i<pinCode.length?' filled':'');
+  }
+  if(pinCode.length===4)setTimeout(checkPin,200);
 };
 
 window.pinDel=function(){
   pinCode=pinCode.slice(0,-1);
-  updatePinDots();
+  for(let i=0;i<4;i++){
+    const dot=document.getElementById('pd'+i);
+    if(dot)dot.className='pin-dot'+(i<pinCode.length?' filled':'');
+  }
   document.getElementById('pinError').textContent='';
 };
 
-function updatePinDots(){
-  for(let i=0;i<4;i++){
-    const dot=document.getElementById('pd'+i);
-    if(dot) dot.className='pin-dot'+(i<pinCode.length?' filled':'');
-  }
-}
-
 function checkPin(){
-  const match=PINS[pinCode];
-  if(match){
-    S.shop=match.shop;
-    localStorage.setItem('cam_shop',match.shop);
+  const shop=PINS[pinCode];
+  if(shop){
+    S.shop=shop;
+    localStorage.setItem('cam_shop',shop);
     document.getElementById('pinScreen').style.display='none';
-    Promise.all([loadDepts(),loadShops()]).then(()=>listen());
+    listen();
   } else {
     document.getElementById('pinError').textContent='Code incorrect — réessayez';
     pinCode='';
-    updatePinDots();
+    for(let i=0;i<4;i++){
+      const dot=document.getElementById('pd'+i);
+      if(dot)dot.className='pin-dot';
+    }
   }
 }
 
-// Vérifier si déjà connecté (session en cours)
-const savedShop=localStorage.getItem('cam_shop_session');
-if(savedShop&&PINS[Object.keys(PINS).find(k=>PINS[k].shop===savedShop)||'']){
-  S.shop=savedShop;
-  document.getElementById('pinScreen').style.display='none';
-  Promise.all([loadDepts(),loadShops()]).then(()=>listen());
-}
+// Charger Firebase config au démarrage
+Promise.all([loadDepts(),loadShops()]).then(()=>{
+  // Afficher l'écran PIN
+  document.getElementById('pinScreen').style.display='flex';
+});
 
 };
 
