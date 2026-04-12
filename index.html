@@ -98,6 +98,22 @@ select.fi{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
 .product-preview .pp-brand{font-size:12px;color:var(--muted);margin-bottom:4px}
 .product-preview .pp-cat{font-size:11px;color:var(--green)}
 
+
+/* Écran PIN */
+.pin-screen{position:fixed;inset:0;background:#0a0a0a;z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px}
+.pin-logo{font-size:48px;margin-bottom:12px}
+.pin-title{font-size:20px;font-weight:800;color:#fff;margin-bottom:4px;text-align:center}
+.pin-sub{font-size:13px;color:#666;margin-bottom:40px;text-align:center}
+.pin-dots{display:flex;gap:16px;margin-bottom:32px}
+.pin-dot{width:18px;height:18px;border-radius:50%;border:2px solid #444;background:transparent;transition:all .15s}
+.pin-dot.filled{background:var(--red);border-color:var(--red)}
+.pin-error{color:#f87171;font-size:13px;margin-bottom:16px;height:20px;text-align:center}
+.pin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:260px}
+.pin-btn{background:#1e1e1e;border:1px solid #333;color:#fff;font-size:22px;font-weight:600;height:72px;border-radius:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .1s}
+.pin-btn:active{background:#333}
+.pin-btn.del{font-size:18px;color:#888}
+.pin-btn.empty{background:transparent;border:none;cursor:default}
+
 /* Scanner overlay */
 .scan-ov{display:none;position:fixed;inset:0;background:#000;z-index:500;flex-direction:column}
 .scan-ov.show{display:flex}
@@ -120,7 +136,7 @@ select.fi{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
   <div>
     <h1 id="hTitle">🍁 Canadian & American Market</h1>
     <div class="sub" id="hSub">Chargement...</div>
-    <div class="ver">Version 16</div>
+    <div class="ver">Version 17</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -135,6 +151,35 @@ select.fi{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
   <div class="panel-box">
     <div class="panel-title">Choisir le magasin</div>
     <div id="panelModes"></div>
+  </div>
+</div>
+
+
+<!-- Écran PIN -->
+<div class="pin-screen" id="pinScreen">
+  <div class="pin-logo">🍁</div>
+  <div class="pin-title">Canadian Market</div>
+  <div class="pin-sub">Entrez votre code PIN</div>
+  <div class="pin-dots">
+    <div class="pin-dot" id="pd0"></div>
+    <div class="pin-dot" id="pd1"></div>
+    <div class="pin-dot" id="pd2"></div>
+    <div class="pin-dot" id="pd3"></div>
+  </div>
+  <div class="pin-error" id="pinError"></div>
+  <div class="pin-grid">
+    <button class="pin-btn" onclick="pinPress('1')">1</button>
+    <button class="pin-btn" onclick="pinPress('2')">2</button>
+    <button class="pin-btn" onclick="pinPress('3')">3</button>
+    <button class="pin-btn" onclick="pinPress('4')">4</button>
+    <button class="pin-btn" onclick="pinPress('5')">5</button>
+    <button class="pin-btn" onclick="pinPress('6')">6</button>
+    <button class="pin-btn" onclick="pinPress('7')">7</button>
+    <button class="pin-btn" onclick="pinPress('8')">8</button>
+    <button class="pin-btn" onclick="pinPress('9')">9</button>
+    <button class="pin-btn empty"></button>
+    <button class="pin-btn" onclick="pinPress('0')">0</button>
+    <button class="pin-btn del" onclick="pinDel()">⌫</button>
   </div>
 </div>
 
@@ -628,14 +673,77 @@ window.removeDept=async function(name){
 };
 
 window.togglePanel=function(){
-  document.getElementById('panelModes').innerHTML=SHOPS.map(s=>`
+  document.getElementById('panelModes').innerHTML=`<div class="mr" onclick="lockApp()" style="color:#f87171;border-color:#3f0d0d;background:#1a0808">
+    <div><div style="font-weight:700">🔒 Changer d'utilisateur</div><div style="font-size:11px;opacity:.6">Revenir à l'écran PIN</div></div>
+  </div>`+SHOPS.map(s=>`
     <div class="mr ${S.shop===s.id?'active':''}" onclick="setShop('${s.id}')">
       <div><div style="font-weight:700">${s.isDepot?'🏭 ':''} ${s.name}</div><div style="font-size:11px;opacity:.6">${s.isDepot?'Accès complet':'Magasin'}</div></div>
     </div>`).join('');
   document.getElementById('panelOv').classList.add('show');
 };
+window.lockApp=function(){
+  document.getElementById('panelOv').classList.remove('show');
+  localStorage.removeItem('cam_shop_session');
+  pinCode='';
+  updatePinDots();
+  document.getElementById('pinError').textContent='';
+  document.getElementById('pinScreen').style.display='flex';
+};
+
 window.closePanelClick=function(e){if(e.target===document.getElementById('panelOv'))document.getElementById('panelOv').classList.remove('show')};
-window.setShop=function(s){S.shop=s;localStorage.setItem('cam_shop',s);document.getElementById('panelOv').classList.remove('show');Promise.all([loadDepts(),loadShops()]).then(()=>listen());};
+window.setShop=function(s){S.shop=s;localStorage.setItem('cam_shop',s);document.getElementById('panelOv').classList.remove('show');
+// ── PIN ───────────────────────────────────────────────────
+const PINS={
+  '0000':{shop:'depot'},
+  '1111':{shop:'geneve'},
+  '2222':{shop:'vevey'}
+};
+
+let pinCode='';
+
+window.pinPress=function(d){
+  if(pinCode.length>=4)return;
+  pinCode+=d;
+  updatePinDots();
+  if(pinCode.length===4) setTimeout(checkPin,150);
+};
+
+window.pinDel=function(){
+  pinCode=pinCode.slice(0,-1);
+  updatePinDots();
+  document.getElementById('pinError').textContent='';
+};
+
+function updatePinDots(){
+  for(let i=0;i<4;i++){
+    const dot=document.getElementById('pd'+i);
+    if(dot) dot.className='pin-dot'+(i<pinCode.length?' filled':'');
+  }
+}
+
+function checkPin(){
+  const match=PINS[pinCode];
+  if(match){
+    S.shop=match.shop;
+    localStorage.setItem('cam_shop',match.shop);
+    document.getElementById('pinScreen').style.display='none';
+    Promise.all([loadDepts(),loadShops()]).then(()=>listen());
+  } else {
+    document.getElementById('pinError').textContent='Code incorrect — réessayez';
+    pinCode='';
+    updatePinDots();
+  }
+}
+
+// Vérifier si déjà connecté (session en cours)
+const savedShop=localStorage.getItem('cam_shop_session');
+if(savedShop&&PINS[Object.keys(PINS).find(k=>PINS[k].shop===savedShop)||'']){
+  S.shop=savedShop;
+  document.getElementById('pinScreen').style.display='none';
+  Promise.all([loadDepts(),loadShops()]).then(()=>listen());
+}
+
+};
 
 listen();
 </script>
