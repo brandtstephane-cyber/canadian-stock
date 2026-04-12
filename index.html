@@ -33,15 +33,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:va
 .nb .bdg{position:absolute;top:4px;right:calc(50% - 18px);background:var(--red);color:#fff;font-size:9px;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 4px;font-weight:700}
 
 /* Vignettes */
-.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .vig{background:var(--card);border-radius:8px;overflow:hidden;border:1px solid var(--border);cursor:pointer;position:relative;-webkit-tap-highlight-color:transparent}
 .vig:active{opacity:.75}
 .vig-img{width:100%;padding-top:100%;position:relative;background:#1a1a1a;overflow:hidden}
 .vig-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.vig-img .vig-emoji{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:22px}
-.vig-body{padding:3px 4px 4px}
-.vig-name{font-size:8px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.vig-qty{font-size:8px;font-weight:800;color:var(--green);margin-top:1px}
+.vig-img .vig-emoji{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:32px}
+.vig-body{padding:5px 6px 7px}
+.vig-name{font-size:11px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vig-qty{font-size:11px;font-weight:800;color:var(--green);margin-top:2px}
 .vig-qty.low{color:#fb923c}
 .vig-qty.out{color:#f87171}
 .vig-badge{position:absolute;top:3px;right:3px;background:#f87171;color:#fff;font-size:7px;padding:1px 4px;border-radius:5px;font-weight:700}
@@ -211,7 +211,7 @@ select.fi{appearance:none}
   <div>
     <h1 id="hTitle">🍁 Canadian Market</h1>
     <div class="sub" id="hSub"></div>
-    <div class="ver">v30</div>
+    <div class="ver">v31</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -425,7 +425,7 @@ function vigRow(p){
   const qc=qty===0?'out':qty<=min?'low':'ok';
   const cartN=S.cart.filter(c=>c.id===p.id).reduce((s,c)=>s+c.qty,0);
   const imgHtml=p.photo?`<img src="${p.photo}" onerror="this.style.display='none'">`:`<div class="vig-emoji">📦</div>`;
-  const onclick=isDepot()?`openEditModal('${p.id}')`:`vigClick('${p.id}')`;
+  const onclick=isDepot()?"openEditModal('"+p.id+"')":"vigClick('"+p.id+"')";
   return `<div class="vig" onclick="${onclick}">
     <div class="vig-img">${imgHtml}</div>
     ${cartN>0?`<div class="vig-cart">${cartN}🛒</div>`:''}
