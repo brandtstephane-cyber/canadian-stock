@@ -120,7 +120,7 @@ select.fi{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
   <div>
     <h1 id="hTitle">🍁 Canadian & American Market</h1>
     <div class="sub" id="hSub">Chargement...</div>
-    <div class="ver">Version 15</div>
+    <div class="ver">Version 16</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -156,7 +156,7 @@ select.fi{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const FC={apiKey:"AIzaSyC3vf083Qj1l-AxK79LPcvx8F1LdtMtdVw",authDomain:"canadian-american-stock.firebaseapp.com",projectId:"canadian-american-stock",storageBucket:"canadian-american-stock.firebasestorage.app",messagingSenderId:"916149478771",appId:"1:916149478771:web:7b25e704425dfbc207d106"};
 const app=initializeApp(FC);
@@ -164,8 +164,8 @@ const db=getFirestore(app);
 
 let SHOPS=[
   {id:'depot',name:'Entrepôt — Rodrigo',icon:'🏭',isDepot:true},
-  {id:'nyon',name:'American Market — Nyon',icon:'🏪',isDepot:false},
-  {id:'geneve',name:'Maple Corner — Genève',icon:'🍁',isDepot:false}
+  {id:'vevey',name:'Canadian Market — Vevey',icon:'🏪',isDepot:false},
+  {id:'geneve',name:'Canadian Market — Genève',icon:'🍁',isDepot:false}
 ];
 
 async function loadShops(){
@@ -173,34 +173,32 @@ async function loadShops(){
     const snap=await getDoc(doc(db,'config','shops'));
     if(snap.exists()&&snap.data().list&&snap.data().list.length>0){
       const saved=snap.data().list;
-      // Toujours garder depot en premier
       const depot={id:'depot',name:'Entrepôt — Rodrigo',icon:'🏭',isDepot:true};
       SHOPS=[depot,...saved.filter(s=>s.id!=='depot')];
     }
-  }catch(e){}
+  }catch(e){console.log('loadShops error:',e);}
 }
 
 async function saveShops(){
   try{
     await setDoc(doc(db,'config','shops'),{list:SHOPS});
-  }catch(e){}
+  }catch(e){console.log('saveShops error:',e);}
 }
-let DEPTS=['Tous','Épicerie','Boissons','Snacks','Condiments','Réfrigéré','Surgelé','Confiserie','Canadien','Mexicain','Divers'];
+let DEPTS=['Épicerie & Divers','Boissons','Candy','Mexicain','Amérique Latine','Canadien','Non Food'];
 
 async function loadDepts(){
   try{
-    const {getDoc,setDoc}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
     const snap=await getDoc(doc(db,'config','departments'));
     if(snap.exists()&&snap.data().list&&snap.data().list.length>0){
-      DEPTS=['Tous',...snap.data().list];
+      DEPTS=snap.data().list;
     }
-  }catch(e){}
+  }catch(e){console.log('loadDepts error:',e);}
 }
 
 async function saveDepts(){
   try{
-    await setDoc(doc(db,'config','departments'),{list:DEPTS.filter(d=>d!=='Tous')});
-  }catch(e){}
+    await setDoc(doc(db,'config','departments'),{list:DEPTS});
+  }catch(e){console.log('saveDepts error:',e);}
 }
 
 const S={
@@ -208,7 +206,7 @@ const S={
   mode:localStorage.getItem('cam_mode')||'stock',
   tab:0,products:[],orders:[],
   cart:JSON.parse(localStorage.getItem('cam_cart')||'[]'),
-  search:'',dept:'Tous',unsubs:[],photoData:null
+  search:'',dept:'',unsubs:[],photoData:null
 };
 
 let scanStream=null,scanInterval=null;
@@ -260,7 +258,7 @@ function renderNav(){
 }
 
 function renderStock(){
-  const fl=S.products.filter(p=>S.dept==='Tous'||p.dept===S.dept).filter(p=>!S.search||p.name.toLowerCase().includes(S.search.toLowerCase()));
+  const fl=S.products.filter(p=>!S.dept||p.dept===S.dept).filter(p=>!S.search||p.name.toLowerCase().includes(S.search.toLowerCase()));
   const out=fl.filter(p=>(p.qty||0)===0);
   let h=`<div class="sb"><input type="search" placeholder="🔍 Rechercher..." value="${S.search}" oninput="setSrch(this.value)"></div>
   <div class="ds">${DEPTS.map(d=>`<div class="dc ${S.dept===d?'active':''}" onclick="setDept('${d}')">${d}</div>`).join('')}</div>`;
@@ -341,7 +339,7 @@ function renderAdmin(){
     <div class="fg"><label class="fl">Code-barres</label><input class="fi" id="aBarcode" placeholder="Scanné ou manuel" inputmode="numeric"></div>
     <div class="fg"><label class="fl">Nom du produit *</label><input class="fi" id="aName" placeholder="Ex: Dr Pepper 355ml"></div>
     <div class="fg"><label class="fl">Département</label>
-      <select class="fi" id="aDept">${DEPTS.filter(d=>d!=='Tous').map(d=>`<option>${d}</option>`).join('')}</select>
+      <select class="fi" id="aDept">${DEPTS.map(d=>`<option>${d}</option>`).join('')}</select>
     </div>
     <div class="fg"><label class="fl">Pièces/master case</label><input class="fi" id="aPiecesBox" type="number" placeholder="12" min="1" value="12" oninput="calcTotal()"></div>
     <input type="hidden" id="aUnit" value="unités">
