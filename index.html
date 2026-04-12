@@ -134,7 +134,7 @@ select.fi{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
   <div>
     <h1 id="hTitle">🍁 Canadian Market</h1>
     <div class="sub" id="hSub">Chargement...</div>
-    <div class="ver">Version 24</div>
+    <div class="ver">Version 25</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -396,8 +396,7 @@ function prodRow(p){
   const sc=qty===0?'out':qty<=min?'low':'ok';
   const sl=qty===0?'Épuisé':qty<=min?'Faible':'OK';
   const img=p.photo?`<img src="${p.photo}" onerror="this.parentElement.textContent='📦'">`:p.emoji||'📦';
-  return `<div class="pr">
-    <div class="pi">${img}</div>
+  return `<div class="pr" style="${isDepot()?'cursor:pointer':''}"><div class="pi">${img}</div>
     <div class="pinfo"><div class="pn">${p.name}</div><div class="pd">${p.dept||''} <span class="chip ${sc}">${sl}</span></div></div>
     <div class="qc">
       <button class="qb" onclick="chQty('${p.id}',-1)">−</button>
@@ -408,6 +407,23 @@ function prodRow(p){
 }
 
 // ── ORDER ──────────────────────────────────────────────────
+
+function vignetteRow(p){
+  const qty=p.qty||0,min=p.minQty||2;
+  const qClass=qty===0?'out':qty<=min?'low':'ok';
+  const cartQty=S.cart.filter(c=>c.id===p.id).reduce((s,c)=>s+c.qty,0);
+  const img=p.photo?`<img src="${p.photo}" onerror="this.parentElement.textContent='📦'">`:'📦';
+  return `<div class="vignette" onclick="vignetteClick('${p.id}')">
+    <div class="vignette-img">${img}</div>
+    ${cartQty>0?`<div class="vignette-cart show">${cartQty} 🛒</div>`:''}
+    ${qty===0?`<div class="vignette-badge show">Épuisé</div>`:''}
+    <div class="vignette-info">
+      <div class="vignette-name">${p.name}</div>
+      <div class="vignette-qty ${qClass}">${qty===0?'Épuisé':qty+' u.'}</div>
+    </div>
+  </div>`;
+}
+
 function renderOrder(){
   if(isDepot()) return renderDepotOrders();
   return renderShopOrder();
