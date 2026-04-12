@@ -134,7 +134,7 @@ select.fi{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
   <div>
     <h1 id="hTitle">🍁 Canadian Market</h1>
     <div class="sub" id="hSub">Chargement...</div>
-    <div class="ver">Version 28</div>
+    <div class="ver">Version 29</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -413,7 +413,7 @@ function vignetteRow(p){
   const qClass=qty===0?'out':qty<=min?'low':'ok';
   const cartQty=S.cart.filter(c=>c.id===p.id).reduce((s,c)=>s+c.qty,0);
   const img=p.photo?`<img src="${p.photo}" onerror="this.parentElement.textContent='📦'">`:'📦';
-  return `<div class="vignette" onclick="${isDepot()?`openProductModal('${p.id}')`:"vignetteClick('"+ p.id +"')"}"><div class="vignette-img">${img}</div>
+  return `<div class="vignette" id="vig-${p.id}"><div class="vignette-img" onclick="handleVigClick('${p.id}')">${img}</div>
     ${cartQty>0?`<div class="vignette-cart show">${cartQty} 🛒</div>`:''}
     ${qty===0?`<div class="vignette-badge show">Épuisé</div>`:''}
     <div class="vignette-info">
