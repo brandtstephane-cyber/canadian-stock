@@ -45,7 +45,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:va
 .vig-qty.low{color:#fb923c}
 .vig-qty.out{color:#f87171}
 .vig-badge{position:absolute;top:3px;right:3px;background:#f87171;color:#fff;font-size:7px;padding:1px 4px;border-radius:5px;font-weight:700}
-.vig-cart{position:absolute;top:3px;left:3px;background:rgba(0,0,0,.8);color:#fff;font-size:7px;padding:1px 4px;border-radius:5px;font-weight:700}
+.vig-cart{position:absolute;top:4px;left:4px;background:var(--red);color:#fff;font-size:12px;padding:3px 7px;border-radius:10px;font-weight:800;min-width:24px;text-align:center}
 
 /* Card */
 .card{background:var(--card);border-radius:12px;margin-bottom:10px;overflow:hidden;border:1px solid var(--border)}
@@ -173,6 +173,12 @@ select.fi{appearance:none}
 .scan-frame{position:absolute;top:50%;left:50%;transform:translate(-50%,-60%);width:250px;height:150px;border:2px solid var(--red);border-radius:10px;box-shadow:0 0 0 9999px rgba(0,0,0,.55)}
 .scan-line{position:absolute;top:0;left:0;right:0;height:2px;background:var(--red);animation:scanline 1.5s ease-in-out infinite}
 @keyframes scanline{0%,100%{top:0}50%{top:100%}}
+
+/* Bouton flottant commande */
+.float-order{position:fixed;bottom:76px;left:50%;transform:translateX(-50%);background:var(--red);color:#fff;border:none;border-radius:24px;padding:14px 28px;font-size:15px;font-weight:700;cursor:pointer;z-index:99;display:none;box-shadow:0 4px 20px rgba(200,16,46,.5);white-space:nowrap}
+.float-order.show{display:flex;align-items:center;gap:8px}
+.float-order:active{opacity:.8}
+
 .scan-hint{position:absolute;bottom:24px;left:20px;right:20px;text-align:center;color:#fff;font-size:12px;background:rgba(0,0,0,.55);padding:8px;border-radius:8px}
 </style>
 </head>
@@ -211,7 +217,7 @@ select.fi{appearance:none}
   <div>
     <h1 id="hTitle">🍁 Canadian Market</h1>
     <div class="sub" id="hSub"></div>
-    <div class="ver">v33</div>
+    <div class="ver">v34</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -253,6 +259,11 @@ select.fi{appearance:none}
     <div class="scan-hint">Pointez vers le code-barres</div>
   </div>
 </div>
+
+<!-- Bouton flottant commande -->
+<button class="float-order" id="floatOrder" onclick="goToCart()">
+  🛒 <span id="floatOrderText">Envoyer la commande</span>
+</button>
 
 <!-- Inputs fichiers -->
 <input type="file" id="photoGallery" accept="image/*" style="display:none" onchange="handlePhoto(this)">
@@ -386,7 +397,26 @@ function render(){
   else if(S.mode==='order')c.innerHTML=renderOrder();
   else if(S.mode==='admin')c.innerHTML=renderAdmin();
   else if(S.mode==='recap')c.innerHTML=renderRecap();
+  updateFloatBtn();
 }
+
+function updateFloatBtn(){
+  const btn=document.getElementById('floatOrder');
+  const txt=document.getElementById('floatOrderText');
+  if(!btn)return;
+  if(!isDepot()&&S.cart.length>0){
+    btn.classList.add('show');
+    const total=S.cart.reduce((s,c)=>s+c.qty,0);
+    if(txt)txt.textContent=`Commander (${total} carton${total>1?'s':''})`;
+  } else {
+    btn.classList.remove('show');
+  }
+}
+
+window.goToCart=function(){
+  S.mode='order';S.tab=1;
+  render();
+};
 
 function renderNav(){
   const low=S.products.filter(p=>(p.qty||0)<=(p.minQty||2)).length;
