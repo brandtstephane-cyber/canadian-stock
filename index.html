@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#C8102E">
-<title>Canadian Market v75</title>
+<title>Canadian Market v76</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{background:#111!important;min-height:100vh}
@@ -171,7 +171,7 @@ select.fi{appearance:none}
 <div class="pin-screen show" id="pinScreen">
   <div class="pin-logo">🍁</div>
   <div class="pin-title">Canadian Market</div>
-  <div class="pin-ver" id="pinVer">v75</div>
+  <div class="pin-ver" id="pinVer">v76</div>
   <div class="pin-sub">Entrez votre code PIN</div>
   <div class="pin-dots">
     <div class="pin-dot" id="pd0"></div>
@@ -200,7 +200,7 @@ select.fi{appearance:none}
   <div>
     <h1 id="hTitle">🍁 Canadian Market</h1>
     <div class="sub" id="hSub"></div>
-    <div class="ver">v75</div>
+    <div class="ver">v76</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -313,6 +313,7 @@ function checkPin(){
 function lockApp(){
   localStorage.removeItem('cam_session');
   localStorage.removeItem('cam_seen_alerts');
+  window.alertPopupBlocked=false;
   hidePanel();
   pinCode='';
   for(var i=0;i<4;i++){var el=document.getElementById('pd'+i);if(el)el.className='pin-dot';}
@@ -339,6 +340,7 @@ let SHOPS=[
 let DEPTS=['Épicerie & Divers','Boissons','Candy','Mexicain','Amérique Latine','Canadien','Non Food'];
 
 const S={shop:'depot',mode:'stock',tab:0,products:[],orders:[],alerts:[],cart:[],search:'',dept:'',unsubs:[],photoData:null,editId:null};
+window.alertPopupBlocked=false;
 function isDepot(){return S.shop==='depot';}
 
 async function loadConfig(){
@@ -385,7 +387,7 @@ function listen(){
           const seenRaw=localStorage.getItem('cam_seen_alerts')||'[]';
       const seenSet=new Set(JSON.parse(seenRaw));
       const newAlerts=S.alerts.filter(function(a){return !seenSet.has(a.id);});
-      if(newAlerts.length>0){
+      if(newAlerts.length>0&&!window.alertPopupBlocked){
         const newAlert=newAlerts[0];
         seenSet.add(newAlert.id);
         localStorage.setItem('cam_seen_alerts',JSON.stringify([...seenSet]));
@@ -833,8 +835,10 @@ window.ignorerNotif=async function(){
   document.getElementById('notifPopup').classList.remove('show');
   if(!alertId)return;
   window.currentNotifAlertId=null;
+  window.alertPopupBlocked=true;
   try{const s=new Set(JSON.parse(localStorage.getItem('cam_seen_alerts')||'[]'));s.add(alertId);localStorage.setItem('cam_seen_alerts',JSON.stringify([...s]));}catch(e){}
   S.alerts=[];
+  window.alertPopupBlocked=true;
   if(S.mode==='stock')render();
   await deleteAllAlertsForProduct(shopId, window.currentNotifProductId, alertId);
 };
