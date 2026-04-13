@@ -189,7 +189,7 @@ select.fi{appearance:none}
   <div class="pin-logo">🍁</div>
   <div class="pin-title">Canadian Market</div>
   <div class="pin-sub">Entrez votre code PIN</div>
-  <div style="font-size:16px;color:#fff;font-weight:700;margin-bottom:20px;letter-spacing:2px">v45</div>
+  <div style="font-size:16px;color:#fff;font-weight:700;margin-bottom:20px;letter-spacing:2px">v46</div>
   <div class="pin-dots">
     <div class="pin-dot" id="pd0"></div>
     <div class="pin-dot" id="pd1"></div>
@@ -218,7 +218,7 @@ select.fi{appearance:none}
   <div>
     <h1 id="hTitle">🍁 Canadian Market</h1>
     <div class="sub" id="hSub"></div>
-    <div class="ver">v45</div>
+    <div class="ver">v46</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -307,7 +307,23 @@ function checkPin(){
   var shop=PINS[pinCode];
   if(shop){
     document.getElementById('pinScreen').classList.remove('show');
-    if(typeof window.startApp==='function')window.startApp(shop);
+    // Attendre que le module ES6 soit chargé
+    if(typeof window.startApp==='function'){
+      window.startApp(shop);
+    } else {
+      // Réessayer jusqu'à ce que startApp soit disponible
+      var attempts=0;
+      var interval=setInterval(function(){
+        attempts++;
+        if(typeof window.startApp==='function'){
+          clearInterval(interval);
+          window.startApp(shop);
+        } else if(attempts>50){
+          clearInterval(interval);
+          document.getElementById('pinErr').textContent='Erreur de chargement — rechargez la page';
+        }
+      },100);
+    }
   } else {
     document.getElementById('pinErr').textContent='Code incorrect';
     pinCode='';
@@ -361,8 +377,6 @@ async function loadConfig(){
 }
 
 window.startApp=async function(shop){
-  S.alertsLoaded=false;
-  S.alerts=[];
   S.shop=shop;
   await loadConfig();
   listen();
@@ -705,7 +719,11 @@ function renderOrder(){
               </div>`;
             }).join('')}
           </div>
-          ${o.status!=='done'?`<button class="btn ${allDone?'btn-green':'btn-out'}" onclick="${allDone?`markDone('${o.id}','${o.shopId}')`:''}" style="${allDone?'':'cursor:not-allowed;opacity:.5'}">${allDone?'✅ Marquer comme livrée':'Cliquez sur chaque produit pour cocher'}</button>`:''}
+          ${(()=>{
+              if(o.status==='done')return '';
+              if(allDone)return '<button class="btn btn-green" onclick="markDone(''+o.id+'',''+o.shopId+'')">✅ Marquer comme livrée</button>';
+              return '<button class="btn btn-out" style="opacity:.5;cursor:not-allowed">Cochez chaque produit d'abord ('+doneCount+'/'+total+')</button>';
+            })()}
         </div>
       </div>`;
     }).join('');
