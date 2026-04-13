@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#C8102E">
-<title>Canadian Market v86</title>
+<title>Canadian Market v87</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{background:#111!important;min-height:100vh}
@@ -26,7 +26,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:va
 .nb.active .lb{color:var(--red)}
 .nb .bdg{position:absolute;top:4px;right:calc(50% - 18px);background:var(--red);color:#fff;font-size:9px;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 4px;font-weight:700}
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.vig{background:var(--card);border-radius:8px;overflow:hidden;border:1px solid var(--border);cursor:pointer;position:relative}
+.vig{background:var(--card);border-radius:8px;overflow:hidden;border:1px solid var(--border);cursor:pointer;position:relative;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .vig:active{opacity:.75}
 .vig-img{width:100%;padding-top:100%;position:relative;background:#1a1a1a;overflow:hidden}
 .vig-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
@@ -171,7 +171,7 @@ select.fi{appearance:none}
 <div class="pin-screen show" id="pinScreen">
   <div class="pin-logo">🍁</div>
   <div class="pin-title">Canadian Market</div>
-  <div class="pin-ver" id="pinVer">v86</div>
+  <div class="pin-ver" id="pinVer">v87</div>
   <div class="pin-sub">Entrez votre code PIN</div>
   <div class="pin-dots">
     <div class="pin-dot" id="pd0"></div>
@@ -200,7 +200,7 @@ select.fi{appearance:none}
   <div>
     <h1 id="hTitle">🍁 Canadian Market</h1>
     <div class="sub" id="hSub"></div>
-    <div class="ver">v86</div>
+    <div class="ver">v87</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -473,7 +473,7 @@ function vigRow(p){
   const isRup=qty===0||p.rupture;
   const imgHtml=p.photo?'<img src="'+p.photo+'" onerror="this.style.display=\'none\'">':'<div class="vig-emoji">📦</div>';
   const fn=isDepot()?"openEditModal('"+p.id+"')":"vigClick('"+p.id+"')";
-  const longpress=!isDepot()?'onmousedown="startLongPress(event,\''+p.id+'\')" ontouchstart="startLongPress(event,\''+p.id+'\')" onmouseup="cancelLongPress()" onmouseleave="cancelLongPress()" ontouchend="cancelLongPress()" ontouchcancel="cancelLongPress()"':'';
+  const longpress=!isDepot()?'oncontextmenu="return false" ontouchstart="startLongPress(event,\''+p.id+'\')" ontouchend="cancelLongPress()" ontouchcancel="cancelLongPress()" ontouchmove="cancelLongPress()"':'';
   let html='<div class="vig" onclick="'+fn+'" '+longpress+'>';
   html+='<div class="vig-img">'+imgHtml;
   if(isRup){
@@ -1244,6 +1244,7 @@ window.removeDept=async function(name){
 
 window._longPressTimer=null;
 window.startLongPress=function(e,id){
+  e.preventDefault();
   cancelLongPress();
   window._longPressTimer=setTimeout(function(){
     window._longPressTimer=null;
