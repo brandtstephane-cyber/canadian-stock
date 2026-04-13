@@ -123,6 +123,22 @@ select.fi{appearance:none}
 .pin-btn:active{background:#2a2a2a}
 .pin-btn.del{font-size:16px;color:#666}
 .pin-btn.empty{background:transparent;border:none;cursor:default}
+.rupture-popup{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:400;align-items:center;justify-content:center;padding:20px}
+.rupture-popup.show{display:flex}
+.rupture-box{background:#1e1e1e;border-radius:20px;padding:24px;width:100%;max-width:380px;border:1px solid var(--border)}
+.rupture-box h3{font-size:16px;font-weight:800;color:#f87171;margin-bottom:8px}
+.rupture-box p{font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.5}
+.rupture-box .prod-name{font-size:15px;font-weight:700;color:#fff;margin-bottom:16px}
+.rupture-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+.notif-popup{display:none;position:fixed;top:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;z-index:600;padding:12px}
+.notif-popup.show{display:block}
+.notif-box{background:#1e3a5f;border:1px solid #1d4ed8;border-radius:14px;padding:14px;box-shadow:0 4px 20px rgba(0,0,0,.5)}
+.notif-box h4{font-size:13px;font-weight:700;color:#93c5fd;margin-bottom:6px}
+.notif-box p{font-size:12px;color:#bfdbfe;margin-bottom:10px;line-height:1.5}
+.notif-input{width:100%;padding:8px 12px;border-radius:8px;border:1px solid #1d4ed8;background:#0f2847;color:#fff;font-size:14px;margin-bottom:10px}
+.notif-btns{display:flex;gap:8px}
+
 .scan-ov{display:none;position:fixed;inset:0;background:#000;z-index:500;flex-direction:column}
 .scan-ov.show{display:flex}
 .scan-top{background:rgba(0,0,0,.8);padding:12px 16px;display:flex;align-items:center;gap:10px}
@@ -145,7 +161,7 @@ select.fi{appearance:none}
 <div class="pin-screen show" id="pinScreen">
   <div class="pin-logo">🍁</div>
   <div class="pin-title">Canadian Market</div>
-  <div class="pin-ver" id="pinVer">v50</div>
+  <div class="pin-ver" id="pinVer">v51</div>
   <div class="pin-sub">Entrez votre code PIN</div>
   <div class="pin-dots">
     <div class="pin-dot" id="pd0"></div>
@@ -174,7 +190,7 @@ select.fi{appearance:none}
   <div>
     <h1 id="hTitle">🍁 Canadian Market</h1>
     <div class="sub" id="hSub"></div>
-    <div class="ver">v50</div>
+    <div class="ver">v51</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -201,6 +217,32 @@ select.fi{appearance:none}
       <button class="modal-close" onclick="hideModal()">✕</button>
     </div>
     <div id="modalContent"></div>
+  </div>
+</div>
+
+<!-- Popup rupture de stock -->
+<div class="rupture-popup" id="rupturePopup">
+  <div class="rupture-box">
+    <h3>⚠️ Rupture de stock</h3>
+    <div class="prod-name" id="ruptureProductName"></div>
+    <p>Ce produit est en rupture à l'entrepôt.<br>Voulez-vous demander s'il est disponible dans un autre magasin ?</p>
+    <div class="rupture-btns">
+      <button class="btn btn-out" onclick="closeRupturePopup()" style="margin-bottom:0">Non, fermer</button>
+      <button class="btn btn-red" onclick="confirmRuptureAlert()" style="margin-bottom:0">Oui, demander</button>
+    </div>
+  </div>
+</div>
+
+<!-- Popup notification reçue (magasin) -->
+<div class="notif-popup" id="notifPopup">
+  <div class="notif-box">
+    <h4 id="notifTitle">📨 Demande d'un autre magasin</h4>
+    <p id="notifMessage"></p>
+    <input class="notif-input" id="notifQty" type="number" placeholder="Combien en avez-vous ?" min="0">
+    <div class="notif-btns">
+      <button class="btn btn-out btn-sm" onclick="ignorerNotif()" style="flex:1;margin-bottom:0">Je n'en ai pas</button>
+      <button class="btn btn-blue btn-sm" onclick="repondreNotif()" style="flex:1;margin-bottom:0">Envoyer ma réponse</button>
+    </div>
   </div>
 </div>
 
@@ -320,8 +362,18 @@ function listen(){
     }));
     // Écouter les alertes reçues
     S.unsubs.push(onSnapshot(query(collection(db,'shops/'+S.shop+'/alerts'),orderBy('createdAt','desc')),snap=>{
+      const prev=S.alerts||[];
       S.alerts=snap.docs.filter(d=>!d.data().answered).map(d=>({id:d.id,...d.data()}));
-      if(S.alerts.length>0)showAlertsNotif();
+      // Afficher popup si nouvelle alerte
+      if(S.alerts.length>prev.length&&S.alerts.length>0){
+        const newAlert=S.alerts[0];
+        window.currentNotifAlertId=newAlert.id;
+        window.currentNotifProductId=newAlert.productId;
+        document.getElementById('notifTitle').textContent='📨 '+newAlert.fromShopName+' cherche un produit';
+        document.getElementById('notifMessage').textContent='"'+newAlert.productName+'" est en rupture chez eux. En avez-vous en stock ?';
+        document.getElementById('notifQty').value='';
+        document.getElementById('notifPopup').classList.add('show');
+      }
       if(S.mode==='stock')render();
     }));
   }
@@ -550,10 +602,35 @@ window.calcTotal=function(){
   if(el)el.textContent=t+' unités ('+c+' × '+ppb+' + '+p+')';
 };
 
+var currentRuptureId=null;
+
+window.showRupturePopup=function(id){
+  const p=S.products.find(x=>x.id===id);
+  if(!p)return;
+  currentRuptureId=id;
+  document.getElementById('ruptureProductName').textContent=p.name;
+  document.getElementById('rupturePopup').classList.add('show');
+};
+
+window.closeRupturePopup=function(){
+  document.getElementById('rupturePopup').classList.remove('show');
+  currentRuptureId=null;
+};
+
+window.confirmRuptureAlert=async function(){
+  if(!currentRuptureId)return;
+  document.getElementById('rupturePopup').classList.remove('show');
+  await sendRuptureAlert(currentRuptureId);
+  currentRuptureId=null;
+};
+
 window.vigClick=function(id){
   const p=S.products.find(x=>x.id===id);
   if(!p)return;
-  if((p.qty||0)===0||p.rupture){alert('⚠️ Produit en rupture de stock');return;}
+  if((p.qty||0)===0||p.rupture){
+    showRupturePopup(id);
+    return;
+  }
   const i=S.cart.findIndex(c=>c.id===id);
   if(i>=0)S.cart[i].qty++;
   else S.cart.push({id,name:p.name,qty:1,piecesPerBox:p.piecesPerBox||12});
@@ -676,7 +753,11 @@ window.sendRuptureAlert=async function(id){
   if(!p)return;
   const myName=SHOPS.find(s=>s.id===S.shop)?.name||S.shop;
   for(const sh of SHOPS.filter(s=>!s.isDepot&&s.id!==S.shop)){
-    await addDoc(collection(db,'shops/'+sh.id+'/alerts'),{productId:id,productName:p.name,fromShop:S.shop,fromShopName:myName,answered:false,createdAt:serverTimestamp()});
+    await addDoc(collection(db,'shops/'+sh.id+'/alerts'),{
+      productId:id,productName:p.name,
+      fromShop:S.shop,fromShopName:myName,
+      answered:false,createdAt:serverTimestamp()
+    });
   }
   alert('✅ Demande envoyée aux autres magasins !');
 };
@@ -685,26 +766,48 @@ window.ignorerAlerteDepot=async function(alertId){
   await updateDoc(doc(db,'shops/depot/alerts/'+alertId),{answered:true});
 };
 
-window.repondreAlerte=async function(alertId,productId){
-  const el=document.getElementById('alertQty_'+alertId);
-  const qty=parseInt(el?.value)||0;
+window.currentNotifAlertId=null;
+window.currentNotifProductId=null;
+
+window.ignorerNotif=async function(){
+  if(window.currentNotifAlertId){
+    await updateDoc(doc(db,'shops/'+S.shop+'/alerts/'+window.currentNotifAlertId),{answered:true});
+  }
+  document.getElementById('notifPopup').classList.remove('show');
+};
+
+window.repondreNotif=async function(){
+  const qty=parseInt(document.getElementById('notifQty')?.value)||0;
+  const alertId=window.currentNotifAlertId;
+  const productId=window.currentNotifProductId;
+  if(!alertId)return;
   const p=S.products.find(x=>x.id===productId);
-  // Marquer comme répondu
-  await updateDoc(doc(db,'shops/'+S.shop+'/alerts/'+alertId),{answered:true,response:qty});
-  // Envoyer réponse à l'entrepôt Rodrigo
   const myName=SHOPS.find(s=>s.id===S.shop)?.name||S.shop;
+  // Calculer la moitié à partager
+  const toShare=qty>0?Math.floor(qty/2):0;
+  // Marquer alerte comme répondu
+  await updateDoc(doc(db,'shops/'+S.shop+'/alerts/'+alertId),{answered:true,response:qty,toShare});
+  // Alerter Rodrigo avec instruction de ramassage
   await addDoc(collection(db,'shops/depot/alerts'),{
-    type:'reponse',
+    type:'reponse_partage',
     productId,
     productName:p?.name||productId,
     shopId:S.shop,
     shopName:myName,
-    qty,
-    message:myName+' a '+qty+' unité(s) de "'+( p?.name||productId)+'" en stock',
+    qty,toShare,
+    message:'📦 '+myName+' a '+qty+' unité(s) de "+'+(p?.name||productId)+'". Lors de ta prochaine livraison, récupère '+toShare+' unité(s) pour les redistribuer.',
     answered:false,
     createdAt:serverTimestamp()
   });
-  alert('✅ Réponse envoyée à Rodrigo !');
+  document.getElementById('notifPopup').classList.remove('show');
+  alert('✅ Réponse envoyée ! Rodrigo a été informé de récupérer '+toShare+' unité(s) chez vous.');
+};
+
+window.repondreAlerte=async function(alertId,productId){
+  // Ancienne fonction gardée pour compatibilité
+  window.currentNotifAlertId=alertId;
+  window.currentNotifProductId=productId;
+  window.repondreNotif();
 };
 
 window.ignorerAlerte=async function(alertId){
