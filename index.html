@@ -189,8 +189,8 @@ select.fi{appearance:none}
   <div class="pin-logo">🍁</div>
   <div class="pin-title">Canadian Market</div>
   <div class="pin-sub">Entrez votre code PIN</div>
-  <div style="font-size:10px;color:#333;margin-top:-20px;margin-bottom:20px">v40</div>
-  <div style="font-size:10px;color:#333;margin-top:-20px;margin-bottom:20px">v40</div>
+  <div style="font-size:10px;color:#333;margin-top:-20px;margin-bottom:20px">v41</div>
+  <div style="font-size:10px;color:#333;margin-top:-20px;margin-bottom:20px">v41</div>
   <div class="pin-dots">
     <div class="pin-dot" id="pd0"></div>
     <div class="pin-dot" id="pd1"></div>
@@ -219,7 +219,7 @@ select.fi{appearance:none}
   <div>
     <h1 id="hTitle">🍁 Canadian Market</h1>
     <div class="sub" id="hSub"></div>
-    <div class="ver">v40</div>
+    <div class="ver">v41</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -266,6 +266,17 @@ select.fi{appearance:none}
 <button class="float-order" id="floatOrder" onclick="goToCart()">
   🛒 <span id="floatOrderText">Envoyer la commande</span>
 </button>
+
+
+<!-- Modal recadrage photo -->
+<div id="cropModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:600;flex-direction:column;align-items:center;justify-content:center;padding:20px">
+  <div style="color:#fff;font-size:15px;font-weight:700;margin-bottom:16px">Recadrer la photo</div>
+  <canvas id="cropCanvas" style="max-width:100%;max-height:60vh;border-radius:12px;touch-action:none"></canvas>
+  <div style="display:flex;gap:12px;margin-top:16px">
+    <button onclick="cancelCrop()" style="background:#333;color:#fff;border:none;padding:12px 24px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer">Annuler</button>
+    <button onclick="confirmCrop()" style="background:var(--red);color:#fff;border:none;padding:12px 24px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer">✓ Utiliser</button>
+  </div>
+</div>
 
 <!-- Inputs fichiers -->
 <input type="file" id="photoGallery" accept="image/*" style="display:none" onchange="handlePhoto(this)">
@@ -952,16 +963,50 @@ window.handlePhoto=input=>{
   const file=input.files[0];if(!file)return;
   const r=new FileReader();
   r.onload=e=>{
-    S.photoData=e.target.result;
-    // Preview dans formulaire admin
-    const prev=document.getElementById('photoPreview');
-    if(prev){prev.src=S.photoData;prev.style.display='block';}
-    // Preview dans modal édition
-    const mprev=document.getElementById('mPhotoPreview');
-    if(mprev){mprev.src=S.photoData;mprev.style.display='block';}
+    // Ouvrir modal de recadrage
+    showCropModal(e.target.result);
   };
   r.readAsDataURL(file);
   input.value='';
+};
+
+let cropImg=null,cropStartX=0,cropStartY=0,cropSize=0;
+
+function showCropModal(src){
+  const modal=document.getElementById('cropModal');
+  const canvas=document.getElementById('cropCanvas');
+  const ctx=canvas.getContext('2d');
+  cropImg=new Image();
+  cropImg.onload=()=>{
+    const size=Math.min(cropImg.width,cropImg.height);
+    canvas.width=size;canvas.height=size;
+    cropStartX=(cropImg.width-size)/2;
+    cropStartY=(cropImg.height-size)/2;
+    cropSize=size;
+    ctx.drawImage(cropImg,cropStartX,cropStartY,size,size,0,0,size,size);
+    modal.style.display='flex';
+  };
+  cropImg.src=src;
+}
+
+window.confirmCrop=function(){
+  const canvas=document.getElementById('cropCanvas');
+  // Redimensionner à 400x400 max
+  const out=document.createElement('canvas');
+  const s=Math.min(400,canvas.width);
+  out.width=s;out.height=s;
+  out.getContext('2d').drawImage(canvas,0,0,s,s);
+  S.photoData=out.toDataURL('image/jpeg',0.85);
+  // Mettre à jour previews
+  const prev=document.getElementById('photoPreview');
+  if(prev){prev.src=S.photoData;prev.style.display='block';}
+  const mprev=document.getElementById('mPhotoPreview');
+  if(mprev){mprev.src=S.photoData;mprev.style.display='block';}
+  document.getElementById('cropModal').style.display='none';
+};
+
+window.cancelCrop=function(){
+  document.getElementById('cropModal').style.display='none';
 };
 
 // ── Open Food Facts ────────────────────────────────────────
@@ -1003,33 +1048,57 @@ async function lookupBarcode(code){
 let scanStream=null,scanInterval=null;
 window.openScanner=async()=>{
   document.getElementById('scanOv').classList.add('show');
-  try{scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{exact:'environment'}}});}
-  catch(e){try{scanStream=await navigator.mediaDevices.getUserMedia({video:true});}catch(e2){closeScanner();return;}}
+  document.querySelector('.scan-hint').textContent='Initialisation caméra...';
+  try{
+    scanStream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:{exact:'environment'},width:{ideal:1280},height:{ideal:720}}
+    });
+  }catch(e){
+    try{
+      scanStream=await navigator.mediaDevices.getUserMedia({
+        video:{facingMode:'environment'}
+      });
+    }catch(e2){
+      try{
+        scanStream=await navigator.mediaDevices.getUserMedia({video:true});
+      }catch(e3){
+        document.querySelector('.scan-hint').textContent='Caméra non disponible';
+        return;
+      }
+    }
+  }
   const video=document.getElementById('scanVideo');
   video.srcObject=scanStream;
-  await video.play();
-  if('BarcodeDetector' in window){
-    const det=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128','code_39']});
-    scanInterval=setInterval(async()=>{
-      if(video.readyState===video.HAVE_ENOUGH_DATA){
-        try{
-          const codes=await det.detect(video);
-          if(codes.length){
-            const code=codes[0].rawValue;
-            closeScanner();
-            const bc=document.getElementById('aBarcode');if(bc)bc.value=code;
-            const ex=S.products.find(p=>p.barcode===code);
-            if(ex){
-              const sr=document.getElementById('scanResult');
-              if(sr){sr.style.display='block';sr.className='sr warn';sr.textContent=`⚠️ Produit existant: ${ex.name}`;}
-            } else {
-              lookupBarcode(code);
+  video.onloadedmetadata=()=>{
+    video.play();
+    document.querySelector('.scan-hint').textContent='Pointez vers le code-barres';
+    if('BarcodeDetector' in window){
+      const det=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128','code_39','itf']});
+      scanInterval=setInterval(async()=>{
+        if(video.readyState>=2){
+          try{
+            const codes=await det.detect(video);
+            if(codes.length){
+              const code=codes[0].rawValue;
+              closeScanner();
+              // Remplir dans admin ou modal
+              const bc=document.getElementById('aBarcode')||document.getElementById('mBarcode');
+              if(bc)bc.value=code;
+              const ex=S.products.find(p=>p.barcode===code);
+              if(ex){
+                const sr=document.getElementById('scanResult');
+                if(sr){sr.style.display='block';sr.className='sr warn';sr.textContent=`⚠️ Produit existant: ${ex.name}`;}
+              } else {
+                lookupBarcode(code);
+              }
             }
-          }
-        }catch(e){}
-      }
-    },300);
-  }
+          }catch(e){}
+        }
+      },300);
+    } else {
+      document.querySelector('.scan-hint').textContent='Scanner non supporté — saisissez le code manuellement';
+    }
+  };
 };
 window.closeScanner=()=>{
   if(scanInterval){clearInterval(scanInterval);scanInterval=null;}
