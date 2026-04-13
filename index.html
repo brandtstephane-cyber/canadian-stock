@@ -45,7 +45,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:va
 .vig-qty.low{color:#fb923c}
 .vig-qty.out{color:#f87171}
 .vig-badge{position:absolute;top:3px;right:3px;background:#f87171;color:#fff;font-size:7px;padding:1px 4px;border-radius:5px;font-weight:700}
-.vig-cart{position:absolute;top:4px;left:4px;background:var(--red);color:#fff;font-size:12px;padding:3px 7px;border-radius:10px;font-weight:800;min-width:24px;text-align:center}
+.vig-cart{position:absolute;top:4px;left:4px;background:#000;color:#fff;font-size:12px;padding:3px 7px;border-radius:10px;font-weight:800;min-width:24px;text-align:center;border:1px solid #333}
 
 /* Card */
 .card{background:var(--card);border-radius:12px;margin-bottom:10px;overflow:hidden;border:1px solid var(--border)}
@@ -217,7 +217,7 @@ select.fi{appearance:none}
   <div>
     <h1 id="hTitle">🍁 Canadian Market</h1>
     <div class="sub" id="hSub"></div>
-    <div class="ver">v34</div>
+    <div class="ver">v35</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -926,15 +926,15 @@ function renderPanel(){
     `<div class="mr" onclick="lockApp()" style="color:#f87171;border-color:#3f0d0d;background:#1a0808">
       <div><div style="font-weight:700">🔒 Changer d'utilisateur</div></div>
     </div>`+
-    SHOPS.map(s=>`<div class="mr${S.shop===s.id?' active':''}" onclick="switchShop('${s.id}')">
+    SHOPS.map(s=>`<div class="mr${S.shop===s.id?' active':''}" onclick="lockApp()">
       <div><div style="font-weight:700">${s.name}</div><div style="font-size:11px;opacity:.6">${s.isDepot?'Accès complet':'Magasin'}</div></div>
     </div>`).join('');
 }
 window.renderPanel=renderPanel;
 window.switchShop=async id=>{
-  S.shop=id;S.cart=[];S.orders=[];
+  // Forcer le PIN pour changer de magasin
   hidePanel();
-  listen();
+  lockApp();
 };
 
 </script>
