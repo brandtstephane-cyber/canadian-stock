@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#C8102E">
-<title>Canadian Market v55</title>
+<title>Canadian Market v56</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{background:#111!important;min-height:100vh}
@@ -169,7 +169,7 @@ select.fi{appearance:none}
 <div class="pin-screen show" id="pinScreen">
   <div class="pin-logo">🍁</div>
   <div class="pin-title">Canadian Market</div>
-  <div class="pin-ver" id="pinVer">v55</div>
+  <div class="pin-ver" id="pinVer">v56</div>
   <div class="pin-sub">Entrez votre code PIN</div>
   <div class="pin-dots">
     <div class="pin-dot" id="pd0"></div>
@@ -198,7 +198,7 @@ select.fi{appearance:none}
   <div>
     <h1 id="hTitle">🍁 Canadian Market</h1>
     <div class="sub" id="hSub"></div>
-    <div class="ver">v55</div>
+    <div class="ver">v56</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -929,26 +929,42 @@ function drawCrop(){
 
 window.confirmCrop=function(){
   const canvas=document.getElementById('cropCanvas');
-  const wrap=document.getElementById('cropWrap');
   const ww=canvas.width;
   const wh=canvas.height;
   const fs=cropState.frameSize;
-  // Zone cadre centré
   const fx=(ww-fs)/2;
   const fy=(wh-fs)/2;
-  // Extraire cette zone
   const out=document.createElement('canvas');
   out.width=400;out.height=400;
   const ctx=out.getContext('2d');
-  // Source dans l'image originale
   const sx=(fx-cropState.x)/cropState.scale;
   const sy=(fy-cropState.y)/cropState.scale;
   const sw=fs/cropState.scale;
   ctx.drawImage(cropState.img,sx,sy,sw,sw,0,0,400,400);
   S.photoData=out.toDataURL('image/jpeg',0.85);
-  const prev=document.getElementById('photoPreview')||document.getElementById('mPhotoPreview');
-  if(prev){prev.src=S.photoData;prev.style.display='block';}
+  // Sauvegarder valeurs formulaire avant fermeture
+  var savedName=document.getElementById('aName')?document.getElementById('aName').value:'';
+  var savedBarcode=document.getElementById('aBarcode')?document.getElementById('aBarcode').value:'';
+  var savedDept=document.getElementById('aDept')?document.getElementById('aDept').value:'';
+  var savedPpb=document.getElementById('aPpb')?document.getElementById('aPpb').value:'12';
+  var savedUnit=document.getElementById('aUnit')?document.getElementById('aUnit').value:'unités';
+  var savedCartons=document.getElementById('aCartons')?document.getElementById('aCartons').value:'0';
+  var savedPieces=document.getElementById('aPieces')?document.getElementById('aPieces').value:'0';
+  var savedMin=document.getElementById('aMin')?document.getElementById('aMin').value:'2';
   closeCrop();
+  // Restaurer valeurs après fermeture
+  setTimeout(function(){
+    if(document.getElementById('aName'))document.getElementById('aName').value=savedName;
+    if(document.getElementById('aBarcode'))document.getElementById('aBarcode').value=savedBarcode;
+    if(document.getElementById('aDept')&&savedDept)document.getElementById('aDept').value=savedDept;
+    if(document.getElementById('aPpb'))document.getElementById('aPpb').value=savedPpb;
+    if(document.getElementById('aUnit'))document.getElementById('aUnit').value=savedUnit;
+    if(document.getElementById('aCartons'))document.getElementById('aCartons').value=savedCartons;
+    if(document.getElementById('aPieces'))document.getElementById('aPieces').value=savedPieces;
+    if(document.getElementById('aMin'))document.getElementById('aMin').value=savedMin;
+    var prev=document.getElementById('photoPreview')||document.getElementById('mPhotoPreview');
+    if(prev){prev.src=S.photoData;prev.style.display='block';}
+  },50);
 };
 
 window.closeCrop=function(){
