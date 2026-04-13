@@ -211,7 +211,7 @@ select.fi{appearance:none}
   <div>
     <h1 id="hTitle">🍁 Canadian Market</h1>
     <div class="sub" id="hSub"></div>
-    <div class="ver">v32</div>
+    <div class="ver">v33</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -442,27 +442,66 @@ window.openEditModal=function(id){
   const p=S.products.find(x=>x.id===id);
   if(!p)return;
   S.editId=id;
+  S.photoData=null;
   const qty=p.qty||0;
-  document.getElementById('modalTitle').textContent='✏️ '+p.name;
+  const ppb=p.piecesPerBox||12;
+  const cartons=Math.floor(qty/ppb);
+  const pieces=qty%ppb;
+  document.getElementById('modalTitle').textContent='✏️ Modifier le produit';
   document.getElementById('modalContent').innerHTML=`
-    <div class="fg"><label class="fl">Nom</label><input class="fi" id="mName" value="${p.name||''}"></div>
+    <button class="btn btn-blue" onclick="openScanner()">📷 Scanner le code-barres</button>
+    <div class="sr" id="scanResult"></div>
+    <div class="fg"><label class="fl">Code-barres</label>
+      <input class="fi" id="mBarcode" value="${p.barcode||''}" placeholder="Scanné ou manuel" inputmode="numeric">
+    </div>
+    <div class="fg"><label class="fl">Nom *</label>
+      <input class="fi" id="mName" value="${p.name||''}">
+    </div>
     <div class="fg"><label class="fl">Département</label>
       <select class="fi" id="mDept">${DEPTS.map(d=>`<option${p.dept===d?' selected':''}>${d}</option>`).join('')}</select>
     </div>
     <div class="fg"><label class="fl">Pièces / master case</label>
-      <input class="fi" id="mPpb" type="number" value="${p.piecesPerBox||12}" min="1">
+      <input class="fi" id="mPpb" type="number" value="${ppb}" min="1" oninput="calcTotalModal()">
     </div>
-    <div class="fg"><label class="fl">Stock actuel</label>
-      <div style="display:flex;align-items:center;justify-content:center;gap:16px;padding:10px 0">
-        <button class="qb" style="width:40px;height:40px;font-size:22px" onclick="chQtyModal(-1)">−</button>
-        <div id="mQtyDisplay" style="font-size:32px;font-weight:800;color:var(--green);min-width:60px;text-align:center">${qty}</div>
-        <button class="qb" style="width:40px;height:40px;font-size:22px" onclick="chQtyModal(1)">+</button>
+    <div class="fg"><label class="fl">Unité</label>
+      <input class="fi" id="mUnit" value="${p.unit||'unités'}">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="fg"><label class="fl">Cartons complets</label>
+        <input class="fi" id="mCartons" type="number" value="${cartons}" min="0" oninput="calcTotalModal()">
+      </div>
+      <div class="fg"><label class="fl">Pièces séparées</label>
+        <input class="fi" id="mPieces" type="number" value="${pieces}" min="0" oninput="calcTotalModal()">
       </div>
     </div>
-    <button class="btn btn-red" onclick="saveEdit()">💾 Sauvegarder</button>
-    <button class="btn btn-out" style="color:#f87171;border-color:#3f0d0d;margin-top:4px" onclick="delProd('${id}')">🗑 Supprimer</button>
+    <div class="fg">
+      <label class="fl">Total calculé</label>
+      <div id="mTotalDisplay" style="background:#14532d;border:1px solid #166534;border-radius:10px;padding:10px;font-size:16px;font-weight:800;color:#22c55e;text-align:center">${qty} unités (${cartons} × ${ppb} + ${pieces})</div>
+    </div>
+    <div class="fg"><label class="fl">Seuil alerte</label>
+      <input class="fi" id="mMin" type="number" value="${p.minQty||2}" min="0">
+    </div>
+    <div class="fg"><label class="fl">Photo</label>
+      <div class="photo-btns">
+        <button class="btn btn-blue btn-sm" style="padding:10px" onclick="document.getElementById('photoCamera').click()">📷 Caméra</button>
+        <button class="btn btn-out btn-sm" style="padding:10px" onclick="document.getElementById('photoGallery').click()">🖼 Galerie</button>
+      </div>
+      ${p.photo?`<img id="mPhotoPreview" src="${p.photo}" style="width:100%;height:80px;object-fit:cover;border-radius:10px;margin-bottom:8px">`:
+      `<img id="mPhotoPreview" style="display:none;width:100%;height:80px;object-fit:cover;border-radius:10px;margin-bottom:8px">`}
+    </div>
+    <button class="btn btn-red" onclick="saveEdit('${id}')">💾 Sauvegarder les modifications</button>
+    <button class="btn btn-out" style="color:#f87171;border-color:#3f0d0d;margin-top:4px" onclick="delProd('${id}')">🗑 Supprimer ce produit</button>
   `;
   document.getElementById('modalOv').classList.add('show');
+};
+
+window.calcTotalModal=function(){
+  const c=parseInt(document.getElementById('mCartons')?.value)||0;
+  const p=parseInt(document.getElementById('mPieces')?.value)||0;
+  const ppb=parseInt(document.getElementById('mPpb')?.value)||12;
+  const t=c*ppb+p;
+  const el=document.getElementById('mTotalDisplay');
+  if(el)el.textContent=t+' unités ('+c+' × '+ppb+' + '+p+')';
 };
 
 window.chQtyModal=function(d){
@@ -474,15 +513,27 @@ window.chQtyModal=function(d){
   document.getElementById('mQtyDisplay').textContent=newQty;
 };
 
-window.saveEdit=async function(){
-  if(!S.editId)return;
-  const name=document.getElementById('mName').value.trim();
+window.saveEdit=async function(id){
+  const pid=id||S.editId;
+  if(!pid)return;
+  const name=document.getElementById('mName')?.value.trim();
   if(!name){alert('Nom requis');return;}
-  await updateDoc(doc(db,'products',S.editId),{
+  const ppb=parseInt(document.getElementById('mPpb')?.value)||12;
+  const cartons=parseInt(document.getElementById('mCartons')?.value)||0;
+  const pieces=parseInt(document.getElementById('mPieces')?.value)||0;
+  const qty=cartons*ppb+pieces;
+  const updates={
     name,
-    dept:document.getElementById('mDept').value,
-    piecesPerBox:parseInt(document.getElementById('mPpb').value)||12
-  });
+    barcode:document.getElementById('mBarcode')?.value.trim()||null,
+    dept:document.getElementById('mDept')?.value,
+    unit:document.getElementById('mUnit')?.value||'unités',
+    piecesPerBox:ppb,
+    qty,
+    minQty:parseInt(document.getElementById('mMin')?.value)||2
+  };
+  if(S.photoData)updates.photo=S.photoData;
+  await updateDoc(doc(db,'products',pid),updates);
+  S.photoData=null;
   hideModal();
 };
 
@@ -723,8 +774,12 @@ window.handlePhoto=input=>{
   const r=new FileReader();
   r.onload=e=>{
     S.photoData=e.target.result;
+    // Preview dans formulaire admin
     const prev=document.getElementById('photoPreview');
     if(prev){prev.src=S.photoData;prev.style.display='block';}
+    // Preview dans modal édition
+    const mprev=document.getElementById('mPhotoPreview');
+    if(mprev){mprev.src=S.photoData;mprev.style.display='block';}
   };
   r.readAsDataURL(file);
   input.value='';
