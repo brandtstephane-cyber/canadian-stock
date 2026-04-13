@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#C8102E">
-<title>Canadian Market v59</title>
+<title>Canadian Market v60</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{background:#111!important;min-height:100vh}
@@ -169,7 +169,7 @@ select.fi{appearance:none}
 <div class="pin-screen show" id="pinScreen">
   <div class="pin-logo">🍁</div>
   <div class="pin-title">Canadian Market</div>
-  <div class="pin-ver" id="pinVer">v59</div>
+  <div class="pin-ver" id="pinVer">v60</div>
   <div class="pin-sub">Entrez votre code PIN</div>
   <div class="pin-dots">
     <div class="pin-dot" id="pd0"></div>
@@ -198,7 +198,7 @@ select.fi{appearance:none}
   <div>
     <h1 id="hTitle">🍁 Canadian Market</h1>
     <div class="sub" id="hSub"></div>
-    <div class="ver">v59</div>
+    <div class="ver">v60</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -391,6 +391,7 @@ function listen(){
         const newAlert=S.alerts[0];
         window.currentNotifAlertId=newAlert.id;
         window.currentNotifProductId=newAlert.productId;
+        window.currentNotifFromShop=newAlert.fromShop||null;
         document.getElementById('notifTitle').textContent='📨 '+newAlert.fromShopName+' cherche un produit';
         document.getElementById('notifMessage').textContent='"'+newAlert.productName+'" est en rupture chez eux. En avez-vous en stock ?';
         document.getElementById('notifQty').value='';
@@ -474,6 +475,16 @@ function renderStock(){
   const fl=S.products.filter(p=>!S.dept||p.dept===S.dept).filter(p=>!S.search||p.name.toLowerCase().includes(S.search.toLowerCase()));
   const out=fl.filter(p=>(p.qty||0)===0||p.rupture);
   let h='<div class="sb"><input type="search" placeholder="🔍 Rechercher..." value="'+S.search+'" oninput="setSrch(this.value)"></div>';
+  // Afficher confirmations reçues pour magasin demandeur
+  if(!isDepot()&&S.alerts&&S.alerts.length>0){
+    S.alerts.filter(function(a){return a.type==='confirmation_partage';}).forEach(function(alert){
+      h+='<div style="background:#1e3a5f;border:1px solid #1d4ed8;border-radius:10px;padding:12px;margin-bottom:8px">';
+      h+='<div style="font-size:13px;font-weight:700;color:#93c5fd;margin-bottom:4px">📬 Réponse de '+alert.fromShopName+'</div>';
+      h+='<div style="font-size:14px;color:#fff;margin-bottom:10px;line-height:1.4">'+alert.message+'</div>';
+      h+='<button onclick="dismissShopAlert(\''+alert.id+'\')" style="background:#1d4ed8;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;width:100%">✅ Compris, merci !</button>';
+      h+='</div>';
+    });
+  }
   h+='<div class="ds"><div class="dc'+(S.dept?'':' active')+'" onclick="setDept(\'\')">Tous</div>'+DEPTS.map(d=>'<div class="dc'+(S.dept===d?' active':'')+'" onclick="setDept(\''+d+'\')">'+d+'</div>').join('')+'</div>';
   // Afficher réponses des magasins pour Rodrigo
   if(isDepot()&&S.alerts&&S.alerts.length>0){
@@ -803,6 +814,8 @@ window.currentNotifProductId=null;
 
 window.ignorerNotif=async function(){
   if(window.currentNotifAlertId){
+    S.alerts=(S.alerts||[]).filter(function(a){return a.id!==window.currentNotifAlertId;});
+    if(S.mode==='stock')render();
     await updateDoc(doc(db,'shops/'+S.shop+'/alerts/'+window.currentNotifAlertId),{answered:true});
   }
   document.getElementById('notifPopup').classList.remove('show');
@@ -812,14 +825,17 @@ window.repondreNotif=async function(){
   const qty=parseInt(document.getElementById('notifQty')?.value)||0;
   const alertId=window.currentNotifAlertId;
   const productId=window.currentNotifProductId;
+  const fromShopId=window.currentNotifFromShop;
   if(!alertId)return;
   const p=S.products.find(x=>x.id===productId);
   const myName=SHOPS.find(s=>s.id===S.shop)?.name||S.shop;
-  // Calculer la moitié à partager
   const toShare=qty>0?Math.floor(qty/2):0;
-  // Marquer alerte comme répondu
+  // Marquer alerte comme répondu — disparaît immédiatement localement
+  S.alerts=(S.alerts||[]).filter(function(a){return a.id!==alertId;});
+  document.getElementById('notifPopup').classList.remove('show');
+  if(S.mode==='stock')render();
   await updateDoc(doc(db,'shops/'+S.shop+'/alerts/'+alertId),{answered:true,response:qty,toShare});
-  // Alerter Rodrigo avec instruction de ramassage
+  // Alerter Rodrigo
   await addDoc(collection(db,'shops/depot/alerts'),{
     type:'reponse_partage',
     productId,
@@ -827,12 +843,24 @@ window.repondreNotif=async function(){
     shopId:S.shop,
     shopName:myName,
     qty,toShare,
-    message:'📦 '+myName+' a '+qty+' unité(s) de "+'+(p?.name||productId)+'". Lors de ta prochaine livraison, récupère '+toShare+' unité(s) pour les redistribuer.',
+    message:'📦 '+myName+' a '+qty+' unité(s) de "'+(p?.name||productId)+'". Lors de ta prochaine livraison, récupère '+toShare+' unité(s) pour les redistribuer.',
     answered:false,
     createdAt:serverTimestamp()
   });
-  document.getElementById('notifPopup').classList.remove('show');
-  alert('✅ Réponse envoyée ! Rodrigo a été informé de récupérer '+toShare+' unité(s) chez vous.');
+  // Envoyer confirmation au magasin demandeur
+  if(fromShopId&&fromShopId!==S.shop){
+    await addDoc(collection(db,'shops/'+fromShopId+'/alerts'),{
+      type:'confirmation_partage',
+      productId,
+      productName:p?.name||productId,
+      fromShop:S.shop,
+      fromShopName:myName,
+      qty,toShare,
+      message:'✅ '+myName+' a '+qty+' unité(s) de "'+(p?.name||productId)+'". Rodrigo va t'en apporter '+toShare+' lors de sa prochaine livraison.',
+      answered:false,
+      createdAt:serverTimestamp()
+    });
+  }
 };
 
 window.repondreAlerte=async function(alertId,productId){
@@ -843,6 +871,12 @@ window.repondreAlerte=async function(alertId,productId){
 };
 
 window.ignorerAlerte=async function(alertId){
+  await updateDoc(doc(db,'shops/'+S.shop+'/alerts/'+alertId),{answered:true});
+};
+
+window.dismissShopAlert=async function(alertId){
+  S.alerts=(S.alerts||[]).filter(function(a){return a.id!==alertId;});
+  render();
   await updateDoc(doc(db,'shops/'+S.shop+'/alerts/'+alertId),{answered:true});
 };
 
