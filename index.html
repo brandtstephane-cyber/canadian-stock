@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#C8102E">
-<title>Canadian Market v53</title>
+<title>Canadian Market v54</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{background:#111!important;min-height:100vh}
@@ -169,7 +169,7 @@ select.fi{appearance:none}
 <div class="pin-screen show" id="pinScreen">
   <div class="pin-logo">🍁</div>
   <div class="pin-title">Canadian Market</div>
-  <div class="pin-ver" id="pinVer">v53</div>
+  <div class="pin-ver" id="pinVer">v54</div>
   <div class="pin-sub">Entrez votre code PIN</div>
   <div class="pin-dots">
     <div class="pin-dot" id="pd0"></div>
@@ -198,7 +198,7 @@ select.fi{appearance:none}
   <div>
     <h1 id="hTitle">🍁 Canadian Market</h1>
     <div class="sub" id="hSub"></div>
-    <div class="ver">v53</div>
+    <div class="ver">v54</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -264,22 +264,6 @@ select.fi{appearance:none}
     <div class="scan-frame"><div class="scan-line"></div></div>
     <div class="scan-hint" id="scanHint">Initialisation...</div>
   </div>
-
-<!-- RECADREUR PHOTO -->
-<div class="crop-ov" id="cropOv">
-  <div class="crop-top">
-    <h2>✂️ Recadrer la photo</h2>
-    <span style="color:#fff;font-size:12px;opacity:.6">Glisser pour déplacer</span>
-  </div>
-  <div class="crop-wrap" id="cropWrap">
-    <canvas id="cropCanvas"></canvas>
-    <div id="cropFrame" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);border:3px solid #fff;box-shadow:0 0 0 9999px rgba(0,0,0,.6);pointer-events:none"></div>
-  </div>
-  <div class="crop-bottom">
-    <button class="crop-btn" style="background:#2a2a2a;color:#fff" onclick="closeCrop()">Annuler</button>
-    <button class="crop-btn" style="background:var(--red);color:#fff" onclick="confirmCrop()">✓ Valider</button>
-  </div>
-</div>
 
 </div>
 
@@ -882,6 +866,7 @@ function openCrop(img){
   const canvas=document.getElementById('cropCanvas');
   const frame=document.getElementById('cropFrame');
   ov.classList.add('show');
+  setTimeout(function(){
   // Taille cadre carré = 80% de la plus petite dimension
   const ww=wrap.clientWidth||window.innerWidth;
   const wh=wrap.clientHeight||(window.innerHeight-140);
@@ -896,6 +881,7 @@ function openCrop(img){
   cropState.x=(ww-img.width*cropState.scale)/2;
   cropState.y=(wh-img.height*cropState.scale)/2;
   drawCrop();
+  },50);
   // Touch events
   canvas.ontouchstart=function(e){
     e.preventDefault();
@@ -1142,5 +1128,21 @@ window.renderPanel=function(){
 };
 
 </script>
+
+<!-- RECADREUR PHOTO -->
+<div class="crop-ov" id="cropOv">
+  <div class="crop-top">
+    <h2>✂️ Recadrer la photo</h2>
+    <span style="color:#fff;font-size:12px;opacity:.6">Glisser pour déplacer</span>
+  </div>
+  <div class="crop-wrap" id="cropWrap">
+    <canvas id="cropCanvas"></canvas>
+    <div id="cropFrame" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);border:3px solid #fff;box-shadow:0 0 0 9999px rgba(0,0,0,.6);pointer-events:none"></div>
+  </div>
+  <div class="crop-bottom">
+    <button class="crop-btn" style="background:#2a2a2a;color:#fff" onclick="closeCrop()">Annuler</button>
+    <button class="crop-btn" style="background:var(--red);color:#fff" onclick="confirmCrop()">✓ Valider</button>
+  </div>
+</div>
 </body>
 </html>
