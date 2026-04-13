@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#C8102E">
-<title>Canadian Market v84</title>
+<title>Canadian Market v85</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{background:#111!important;min-height:100vh}
@@ -171,7 +171,7 @@ select.fi{appearance:none}
 <div class="pin-screen show" id="pinScreen">
   <div class="pin-logo">🍁</div>
   <div class="pin-title">Canadian Market</div>
-  <div class="pin-ver" id="pinVer">v84</div>
+  <div class="pin-ver" id="pinVer">v85</div>
   <div class="pin-sub">Entrez votre code PIN</div>
   <div class="pin-dots">
     <div class="pin-dot" id="pd0"></div>
@@ -200,7 +200,7 @@ select.fi{appearance:none}
   <div>
     <h1 id="hTitle">🍁 Canadian Market</h1>
     <div class="sub" id="hSub"></div>
-    <div class="ver">v84</div>
+    <div class="ver">v85</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -342,7 +342,6 @@ let DEPTS=['Épicerie & Divers','Boissons','Candy','Mexicain','Amérique Latine'
 
 const S={shop:'depot',mode:'stock',tab:0,products:[],orders:[],alerts:[],cart:[],search:'',dept:'',unsubs:[],photoData:null,editId:null};
 window.alertPopupBlocked=false;
-window.sessionStartTime=Math.floor(Date.now()/1000); // timestamp démarrage session
 function isDepot(){return S.shop==='depot';}
 
 async function loadConfig(){
@@ -352,8 +351,8 @@ async function loadConfig(){
 
 window.startApp=async function(shop){
   S.shop=shop;
-  window.sessionStartTime=Math.floor(Date.now()/1000); // Reset à chaque session
   window.alertPopupBlocked=false;
+  window.existingAlertIds=new Set(); // IDs des alertes déjà présentes = à ignorer
   listen();
   loadConfig().then(function(){render();}).catch(function(){});
 };
@@ -386,15 +385,15 @@ function listen(){
       if(S.mode==='order')render();else renderNav();
     }));
     // Supprimer TOUTES les vieilles alertes d'abord, puis démarrer le listener
+    // Mémoriser les IDs existants PUIS démarrer le listener
     getDocs(collection(db,'shops',S.shop,'alerts')).then(function(snap){
-      const now=Date.now();
-      const toDelete=snap.docs.filter(function(d){
-        const ts=d.data().createdAt?.seconds;
-        return !ts||(now/1000-ts)>3600; // plus d'1 heure = vieille
-      });
-      return Promise.all(toDelete.map(function(d){return deleteDoc(d.ref);}));
+      // Toutes les alertes déjà là = pré-existantes = à ignorer
+      snap.docs.forEach(function(d){window.existingAlertIds.add(d.id);});
+      // Supprimer les plus vieilles aussi (>1h)
+      const now=Date.now()/1000;
+      const old=snap.docs.filter(function(d){const ts=d.data().createdAt?.seconds;return !ts||now-ts>3600;});
+      return Promise.all(old.map(function(d){return deleteDoc(d.ref);}));
     }).then(function(){
-      // Démarrer le listener APRÈS nettoyage
       S.unsubs.push(onSnapshot(query(collection(db,'shops/'+S.shop+'/alerts'),orderBy('createdAt','desc')),snap=>{
       const prev=S.alerts||[];
       S.alerts=snap.docs.filter(d=>!d.data().answered).map(d=>({id:d.id,...d.data()}));
