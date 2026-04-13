@@ -211,7 +211,7 @@ select.fi{appearance:none}
   <div>
     <h1 id="hTitle">🍁 Canadian Market</h1>
     <div class="sub" id="hSub"></div>
-    <div class="ver">v31</div>
+    <div class="ver">v32</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -442,6 +442,7 @@ window.openEditModal=function(id){
   const p=S.products.find(x=>x.id===id);
   if(!p)return;
   S.editId=id;
+  const qty=p.qty||0;
   document.getElementById('modalTitle').textContent='✏️ '+p.name;
   document.getElementById('modalContent').innerHTML=`
     <div class="fg"><label class="fl">Nom</label><input class="fi" id="mName" value="${p.name||''}"></div>
