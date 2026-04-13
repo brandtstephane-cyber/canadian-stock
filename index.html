@@ -217,7 +217,7 @@ select.fi{appearance:none}
   <div>
     <h1 id="hTitle">🍁 Canadian Market</h1>
     <div class="sub" id="hSub"></div>
-    <div class="ver">v36</div>
+    <div class="ver">v38</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -456,13 +456,18 @@ function vigRow(p){
   const cartN=S.cart.filter(c=>c.id===p.id).reduce((s,c)=>s+c.qty,0);
   const imgHtml=p.photo?`<img src="${p.photo}" onerror="this.style.display='none'">`:`<div class="vig-emoji">📦</div>`;
   const onclick=isDepot()?"openEditModal('"+p.id+"')":"vigClick('"+p.id+"')";
-  return `<div class="vig" onclick="${onclick}">
-    <div class="vig-img">${imgHtml}</div>
+  const isRupture=qty===0||p.rupture;
+  return `<div class="vig" onclick="${onclick}" style="${isRupture&&!isDepot()?'opacity:.6':''}">
+    <div class="vig-img" style="${isRupture?'position:relative':''}">
+      ${imgHtml}
+      ${isRupture?`<div style="position:absolute;inset:0;background:rgba(127,29,29,0.75);display:flex;align-items:center;justify-content:center;flex-direction:column">
+        <div style="font-size:11px;font-weight:800;color:#fca5a5;text-align:center;line-height:1.3">RUPTURE<br>DE STOCK</div>
+      </div>`:''}
+    </div>
     ${cartN>0?`<div class="vig-cart">${cartN}🛒</div>`:''}
-    ${qty===0?`<div class="vig-badge">Épuisé</div>`:''}
     <div class="vig-body">
       <div class="vig-name">${p.name}</div>
-      <div class="vig-qty ${qc}">${qty===0?'Épuisé':qty+' u.'}</div>
+      <div class="vig-qty ${qc}">${isRupture?'⚠️ Rupture':qty+' u.'}</div>
     </div>
   </div>`;
 }
@@ -520,6 +525,10 @@ window.openEditModal=function(id){
       `<img id="mPhotoPreview" style="display:none;width:100%;height:80px;object-fit:cover;border-radius:10px;margin-bottom:8px">`}
     </div>
     <button class="btn btn-red" onclick="saveEdit('${id}')">💾 Sauvegarder les modifications</button>
+    ${p.rupture||qty===0?
+      `<button class="btn btn-green" style="margin-bottom:8px" onclick="unsetRupture('${id}')">✅ Remettre en stock</button>`:
+      `<button class="btn" style="background:#7f1d1d;color:#fca5a5;border:1px solid #991b1b;margin-bottom:8px" onclick="setRupture('${id}')">⚠️ Mettre en rupture de stock</button>`
+    }
     <button class="btn btn-out" style="color:#f87171;border-color:#3f0d0d;margin-top:4px" onclick="delProd('${id}')">🗑 Supprimer ce produit</button>
   `;
   document.getElementById('modalOv').classList.add('show');
@@ -543,6 +552,17 @@ window.chQtyModal=function(d){
   document.getElementById('mQtyDisplay').textContent=newQty;
 };
 
+window.unsetRupture=async function(id){
+  await updateDoc(doc(db,'products',id),{rupture:false});
+  hideModal();
+};
+
+window.setRupture=async function(id){
+  if(!confirm('Mettre ce produit en rupture de stock ?'))return;
+  await updateDoc(doc(db,'products',id),{qty:0,rupture:true});
+  hideModal();
+};
+
 window.saveEdit=async function(id){
   const pid=id||S.editId;
   if(!pid)return;
@@ -559,7 +579,8 @@ window.saveEdit=async function(id){
     unit:document.getElementById('mUnit')?.value||'unités',
     piecesPerBox:ppb,
     qty,
-    minQty:parseInt(document.getElementById('mMin')?.value)||2
+    minQty:parseInt(document.getElementById('mMin')?.value)||2,
+    rupture:qty===0
   };
   if(S.photoData)updates.photo=S.photoData;
   await updateDoc(doc(db,'products',pid),updates);
@@ -577,7 +598,7 @@ window.delProd=async function(id){
 window.vigClick=function(id){
   const p=S.products.find(x=>x.id===id);
   if(!p)return;
-  if((p.qty||0)===0){alert('Produit épuisé');return;}
+  if((p.qty||0)===0||p.rupture){alert('⚠️ Ce produit est en rupture de stock');return;}
   const i=S.cart.findIndex(c=>c.id===id);
   if(i>=0)S.cart[i].qty++;
   else S.cart.push({id,name:p.name,qty:1,piecesPerBox:p.piecesPerBox||12});
