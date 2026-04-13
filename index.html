@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#C8102E">
-<title>Canadian Market v73</title>
+<title>Canadian Market v74</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{background:#111!important;min-height:100vh}
@@ -171,7 +171,7 @@ select.fi{appearance:none}
 <div class="pin-screen show" id="pinScreen">
   <div class="pin-logo">🍁</div>
   <div class="pin-title">Canadian Market</div>
-  <div class="pin-ver" id="pinVer">v73</div>
+  <div class="pin-ver" id="pinVer">v74</div>
   <div class="pin-sub">Entrez votre code PIN</div>
   <div class="pin-dots">
     <div class="pin-dot" id="pd0"></div>
@@ -200,7 +200,7 @@ select.fi{appearance:none}
   <div>
     <h1 id="hTitle">🍁 Canadian Market</h1>
     <div class="sub" id="hSub"></div>
-    <div class="ver">v73</div>
+    <div class="ver">v74</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -326,7 +326,7 @@ function hideModal(){document.getElementById('modalOv').classList.remove('show')
 
 <script type="module">
 import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import{getFirestore,collection,doc,onSnapshot,addDoc,updateDoc,deleteDoc,setDoc,getDoc,getDocs,query,orderBy,where,serverTimestamp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import{getFirestore,collection,doc,onSnapshot,addDoc,updateDoc,deleteDoc,setDoc,getDoc,getDocs,query,orderBy,serverTimestamp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const app=initializeApp({apiKey:"AIzaSyC3vf083Qj1l-AxK79LPcvx8F1LdtMtdVw",authDomain:"canadian-american-stock.firebaseapp.com",projectId:"canadian-american-stock",storageBucket:"canadian-american-stock.firebasestorage.app",messagingSenderId:"916149478771",appId:"1:916149478771:web:7b25e704425dfbc207d106"});
 const db=getFirestore(app);
@@ -799,8 +799,8 @@ window.sendRuptureAlert=async function(id){
   for(const sh of SHOPS.filter(s=>!s.isDepot&&s.id!==S.shop)){
     // Vérifier si une alerte existe déjà pour ce produit
     try{
-      const existing=await getDocs(query(collection(db,'shops',sh.id,'alerts'),where('productId','==',id)));
-      if(!existing.empty)continue; // Déjà une alerte, pas de doublon
+      const existing=await getDocs(collection(db,'shops',sh.id,'alerts'));
+      if(existing.docs.some(function(d){return d.data().productId===id;}))continue;
     }catch(e){}
     await addDoc(collection(db,'shops',sh.id,'alerts'),{
       productId:id,productName:p.name,
@@ -818,14 +818,11 @@ window.ignorerAlerteDepot=async function(alertId){
 };
 
 async function deleteAllAlertsForProduct(shopId, productId, alertId){
-  // Supprimer TOUTES les alertes pour ce produit (évite les doublons de tests)
+  // Supprimer TOUS les documents de la collection alerts du magasin
   try{
-    const q=query(collection(db,'shops',shopId,'alerts'),where('productName','==',window.currentNotifProductName||''));
-    const snap=await getDocs(q);
-    const deletes=snap.docs.map(d=>deleteDoc(d.ref));
-    await Promise.all(deletes);
+    const snap=await getDocs(collection(db,'shops',shopId,'alerts'));
+    await Promise.all(snap.docs.map(function(d){return deleteDoc(d.ref);}));
   }catch(e){
-    // Fallback : supprimer juste celle-ci
     try{await deleteDoc(doc(db,'shops',shopId,'alerts',alertId));}catch(e2){}
   }
 }
