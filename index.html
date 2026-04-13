@@ -145,7 +145,7 @@ select.fi{appearance:none}
 <div class="pin-screen show" id="pinScreen">
   <div class="pin-logo">🍁</div>
   <div class="pin-title">Canadian Market</div>
-  <div class="pin-ver" id="pinVer">v47</div>
+  <div class="pin-ver" id="pinVer">v48</div>
   <div class="pin-sub">Entrez votre code PIN</div>
   <div class="pin-dots">
     <div class="pin-dot" id="pd0"></div>
@@ -174,7 +174,7 @@ select.fi{appearance:none}
   <div>
     <h1 id="hTitle">🍁 Canadian Market</h1>
     <div class="sub" id="hSub"></div>
-    <div class="ver">v47</div>
+    <div class="ver">v48</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -363,7 +363,7 @@ function vigRow(p){
   const cartN=S.cart.filter(c=>c.id===p.id).reduce((s,c)=>s+c.qty,0);
   const isRup=qty===0||p.rupture;
   const imgHtml=p.photo?'<img src="'+p.photo+'" onerror="this.style.display=\'none\'">':'<div class="vig-emoji">📦</div>';
-  const fn=isDepot()?'openEditModal("'+p.id+'")':"vigClick('"+p.id+"')";
+  const fn=isDepot()?"openEditModal('"+p.id+"')":"vigClick('"+p.id+"')";
   let html='<div class="vig" onclick="'+fn+'">';
   html+='<div class="vig-img">'+imgHtml;
   if(isRup){
