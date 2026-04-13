@@ -189,7 +189,7 @@ select.fi{appearance:none}
   <div class="pin-logo">🍁</div>
   <div class="pin-title">Canadian Market</div>
   <div class="pin-sub">Entrez votre code PIN</div>
-  <div style="font-size:16px;color:#fff;font-weight:700;margin-bottom:20px;letter-spacing:2px">v43</div>
+  <div style="font-size:16px;color:#fff;font-weight:700;margin-bottom:20px;letter-spacing:2px">v44</div>
   <div class="pin-dots">
     <div class="pin-dot" id="pd0"></div>
     <div class="pin-dot" id="pd1"></div>
@@ -218,7 +218,7 @@ select.fi{appearance:none}
   <div>
     <h1 id="hTitle">🍁 Canadian Market</h1>
     <div class="sub" id="hSub"></div>
-    <div class="ver">v43</div>
+    <div class="ver">v44</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -1011,15 +1011,14 @@ window.cancelCrop=function(){
 // ── Open Food Facts ────────────────────────────────────────
 async function lookupBarcode(code){
   const sr=document.getElementById('scanResult');
-  if(sr){sr.style.display='block';sr.className='sr info';sr.textContent='🔍 Recherche...';}
+  if(sr){sr.style.display='block';sr.className='sr info';sr.textContent='🔍 Recherche du produit...';}
   try{
-    const res=await fetch(`https://world.openfoodfacts.org/api/v2/product/${code}.json?fields=product_name,brands,image_front_url,image_url,categories`);
+    const res=await fetch(`https://world.openfoodfacts.org/api/v2/product/${code}.json?fields=product_name,brands,image_front_url,image_front_small_url,image_url,images,categories`);
     const data=await res.json();
     if(data.status===1&&data.product){
       const p=data.product;
       const name=p.product_name||'';
       const brand=p.brands||'';
-      const imgUrl=p.image_front_url||p.image_url||'';
       const cats=(p.categories||'').toLowerCase();
       let dept='Épicerie & Divers';
       if(cats.includes('boisson')||cats.includes('drink')||cats.includes('soda'))dept='Boissons';
@@ -1027,21 +1026,81 @@ async function lookupBarcode(code){
       else if(cats.includes('mexican')||cats.includes('mexic'))dept='Mexicain';
       else if(cats.includes('canadian')||cats.includes('maple'))dept='Canadien';
       const fullName=brand?`${name} — ${brand}`:name;
-      const ne=document.getElementById('aName');if(ne&&fullName)ne.value=fullName;
-      const de=document.getElementById('aDept');if(de)de.value=dept;
-      if(imgUrl){
-        S.photoData=imgUrl;
-        const prev=document.getElementById('photoPreview');
-        if(prev){prev.src=imgUrl;prev.style.display='block';}
+      const ne=document.getElementById('aName')||document.getElementById('mName');
+      if(ne&&fullName)ne.value=fullName;
+      const de=document.getElementById('aDept')||document.getElementById('mDept');
+      if(de)de.value=dept;
+
+      // Collecter toutes les images disponibles (préférence fond blanc)
+      const imgs=[];
+      if(p.image_front_url)imgs.push({url:p.image_front_url,label:'Photo face'});
+      if(p.image_url&&p.image_url!==p.image_front_url)imgs.push({url:p.image_url,label:'Photo produit'});
+      // Images additionnelles depuis le catalogue OFF
+      if(p.images){
+        Object.entries(p.images).forEach(([key,val])=>{
+          if(key.startsWith('front')&&val.sizes?.400?.url){
+            const url='https://images.openfoodfacts.org/images/products/'+code.replace(/(.{3})(.{3})(.{3})/,'$1/$2/$3/')+val.sizes['400'].url;
+            if(!imgs.find(i=>i.url===url))imgs.push({url,label:'Vue '+key});
+          }
+        });
       }
-      if(sr){sr.className='sr ok';sr.textContent=`✅ ${fullName}`;}
+
+      if(imgs.length>0){
+        // Afficher choix d'images
+        if(sr){
+          sr.className='sr ok';
+          sr.innerHTML=`✅ <strong>${fullName}</strong><br><div style="margin-top:8px;font-size:11px;color:#86efac">Choisissez une photo :</div>
+          <div style="display:flex;gap:6px;overflow-x:auto;padding:6px 0;margin-top:4px">
+            ${imgs.slice(0,4).map((img,i)=>`
+              <div onclick="selectProductPhoto('${img.url}',this)" style="flex-shrink:0;cursor:pointer;border:2px solid transparent;border-radius:8px;overflow:hidden;width:70px;height:70px">
+                <img src="${img.url}" style="width:70px;height:70px;object-fit:cover" onerror="this.parentElement.style.display='none'">
+              </div>`).join('')}
+            <div onclick="document.getElementById('photoCamera').click()" style="flex-shrink:0;cursor:pointer;border:2px solid #333;border-radius:8px;width:70px;height:70px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:20px;color:#888;gap:2px">
+              📷<div style="font-size:9px">Caméra</div>
+            </div>
+            <div onclick="document.getElementById('photoGallery').click()" style="flex-shrink:0;cursor:pointer;border:2px solid #333;border-radius:8px;width:70px;height:70px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:20px;color:#888;gap:2px">
+              🖼<div style="font-size:9px">Galerie</div>
+            </div>
+          </div>`;
+        }
+        // Sélectionner la première par défaut
+        selectProductPhoto(imgs[0].url,null);
+      } else {
+        if(sr){sr.className='sr ok';sr.textContent=`✅ ${fullName} — aucune photo trouvée`;}
+      }
     } else {
-      if(sr){sr.className='sr warn';sr.textContent=`⚠️ Code ${code} non trouvé`;}
+      if(sr){sr.className='sr warn';sr.textContent=`⚠️ Code ${code} non trouvé — saisissez manuellement`;}
     }
   }catch(e){
     if(sr){sr.className='sr warn';sr.textContent='❌ Erreur réseau';}
   }
 }
+
+window.selectProductPhoto=function(url,el){
+  // Mettre à jour sélection visuelle
+  if(el){
+    const container=el.parentElement;
+    container.querySelectorAll('div').forEach(d=>d.style.borderColor='transparent');
+    el.style.borderColor='var(--red)';
+  }
+  // Charger l'image et recadrer en carré
+  const img=new Image();
+  img.crossOrigin='anonymous';
+  img.onload=()=>{
+    const size=Math.min(img.width,img.height);
+    const canvas=document.createElement('canvas');
+    canvas.width=400;canvas.height=400;
+    const ctx=canvas.getContext('2d');
+    const sx=(img.width-size)/2;
+    const sy=(img.height-size)/2;
+    ctx.drawImage(img,sx,sy,size,size,0,0,400,400);
+    S.photoData=canvas.toDataURL('image/jpeg',0.85);
+    const prev=document.getElementById('photoPreview')||document.getElementById('mPhotoPreview');
+    if(prev){prev.src=S.photoData;prev.style.display='block';}
+  };
+  img.onerror=()=>{S.photoData=url;}; // fallback URL directe
+  img.src=url;
+};
 
 // ── Scanner ────────────────────────────────────────────────
 let scanStream=null,scanInterval=null;
