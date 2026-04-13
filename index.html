@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#C8102E">
-<title>Canadian Market v63</title>
+<title>Canadian Market v65</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{background:#111!important;min-height:100vh}
@@ -123,7 +123,9 @@ select.fi{appearance:none}
 .pin-btn:active{background:#2a2a2a}
 .pin-btn.del{font-size:16px;color:#666}
 .pin-btn.empty{background:transparent;border:none;cursor:default}
-.rupture-popup{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:400;align-items:center;justify-content:center;padding:20px}
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#22c55e;color:#fff;padding:12px 20px;border-radius:14px;font-size:14px;font-weight:600;z-index:800;opacity:0;transition:opacity .3s;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.4)}
+.toast.show{opacity:1}
+.rupture-popup{display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:700;align-items:center;justify-content:center;padding:20px}
 .rupture-popup.show{display:flex}
 .rupture-box{background:#1e1e1e;border-radius:20px;padding:24px;width:100%;max-width:380px;border:1px solid var(--border)}
 .rupture-box h3{font-size:16px;font-weight:800;color:#f87171;margin-bottom:8px}
@@ -169,7 +171,7 @@ select.fi{appearance:none}
 <div class="pin-screen show" id="pinScreen">
   <div class="pin-logo">🍁</div>
   <div class="pin-title">Canadian Market</div>
-  <div class="pin-ver" id="pinVer">v63</div>
+  <div class="pin-ver" id="pinVer">v65</div>
   <div class="pin-sub">Entrez votre code PIN</div>
   <div class="pin-dots">
     <div class="pin-dot" id="pd0"></div>
@@ -198,7 +200,7 @@ select.fi{appearance:none}
   <div>
     <h1 id="hTitle">🍁 Canadian Market</h1>
     <div class="sub" id="hSub"></div>
-    <div class="ver">v63</div>
+    <div class="ver">v65</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -235,8 +237,8 @@ select.fi{appearance:none}
     <div class="prod-name" id="ruptureProductName"></div>
     <p>Ce produit est en rupture à l'entrepôt.<br>Voulez-vous demander s'il est disponible dans un autre magasin ?</p>
     <div class="rupture-btns">
-      <button class="btn btn-out" onclick="closeRupturePopup()" style="margin-bottom:0">Non, fermer</button>
-      <button class="btn btn-red" onclick="confirmRuptureAlert()" style="margin-bottom:0">Oui, demander</button>
+      <button class="btn" onclick="closeRupturePopup()" style="margin-bottom:0;background:#2a2a2a;color:#fff;border:1px solid #444;font-size:15px;padding:14px">✕ Non</button>
+      <button class="btn btn-red" onclick="confirmRuptureAlert()" style="margin-bottom:0;font-size:15px;padding:14px">✓ Oui, demander</button>
     </div>
   </div>
 </div>
@@ -253,6 +255,8 @@ select.fi{appearance:none}
     </div>
   </div>
 </div>
+
+<div class="toast" id="toast"></div>
 
 <div class="scan-ov" id="scanOv">
   <div class="scan-top">
@@ -461,7 +465,7 @@ function vigRow(p){
   if(isRup){
     html+='<div class="vig-rupture"><div class="vig-rupture-txt">RUPTURE<br>DE STOCK</div>';
     if(!isDepot()){
-      html+='<button onclick="event.stopPropagation();sendRuptureAlert(\''+p.id+'\')" style="background:var(--red);color:#fff;border:none;border-radius:6px;padding:2px 6px;font-size:9px;font-weight:700;cursor:pointer">Demander</button>';
+      html+='<button onclick="event.stopPropagation();showRupturePopup(\''+p.id+'\')" style="background:var(--red);color:#fff;border:none;border-radius:6px;padding:2px 6px;font-size:9px;font-weight:700;cursor:pointer">Demander</button>';
     }
     html+='</div>';
   }
@@ -644,6 +648,15 @@ window.calcTotal=function(){
 
 var currentRuptureId=null;
 
+window.showToast=function(msg,color){
+  var t=document.getElementById('toast');
+  if(!t)return;
+  t.textContent=msg;
+  t.style.background=color||'#22c55e';
+  t.classList.add('show');
+  setTimeout(function(){t.classList.remove('show');},3000);
+};
+
 window.showRupturePopup=function(id){
   const p=S.products.find(x=>x.id===id);
   if(!p)return;
@@ -693,7 +706,7 @@ window.sendOrder=async()=>{
     date:new Date().toLocaleString('fr-CH'),
     status:'pending',createdAt:serverTimestamp()
   });
-  S.cart=[];alert('✅ Commande envoyée à Rodrigo !');S.tab=2;render();
+  S.cart=[];showToast('✅ Commande envoyée à Rodrigo !');S.tab=2;render();
 };
 window.markDone=async(id,shopId)=>{
   await updateDoc(doc(db,'shops/'+shopId+'/orders/'+id),{status:'done'});
@@ -799,7 +812,7 @@ window.sendRuptureAlert=async function(id){
       answered:false,createdAt:serverTimestamp()
     });
   }
-  alert('✅ Demande envoyée aux autres magasins !');
+  showToast('✅ Demande envoyée aux autres magasins !');
 };
 
 window.ignorerAlerteDepot=async function(alertId){
