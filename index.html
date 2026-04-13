@@ -145,7 +145,7 @@ select.fi{appearance:none}
 <div class="pin-screen show" id="pinScreen">
   <div class="pin-logo">🍁</div>
   <div class="pin-title">Canadian Market</div>
-  <div class="pin-ver" id="pinVer">v48</div>
+  <div class="pin-ver" id="pinVer">v50</div>
   <div class="pin-sub">Entrez votre code PIN</div>
   <div class="pin-dots">
     <div class="pin-dot" id="pd0"></div>
@@ -174,7 +174,7 @@ select.fi{appearance:none}
   <div>
     <h1 id="hTitle">🍁 Canadian Market</h1>
     <div class="sub" id="hSub"></div>
-    <div class="ver">v48</div>
+    <div class="ver">v50</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -270,8 +270,12 @@ let SHOPS=[
 ];
 let DEPTS=['Épicerie & Divers','Boissons','Candy','Mexicain','Amérique Latine','Canadien','Non Food'];
 
-const S={shop:'depot',mode:'stock',tab:0,products:[],orders:[],cart:[],search:'',dept:'',unsubs:[],photoData:null,editId:null};
+const S={shop:'depot',mode:'stock',tab:0,products:[],orders:[],alerts:[],cart:[],search:'',dept:'',unsubs:[],photoData:null,editId:null};
 function isDepot(){return S.shop==='depot';}
+
+function showAlertsNotif(){
+  // Rien - on affiche dans renderStock
+}
 
 async function loadConfig(){
   try{const d=await getDoc(doc(db,'config','departments'));if(d.exists()&&d.data().list?.length)DEPTS=d.data().list;}catch(e){}
@@ -295,6 +299,12 @@ function listen(){
   },()=>{document.getElementById('syncDot').className='dot off';}));
   if(isDepot()){
     S.orders=[];
+    S.alerts=[];
+    // Écouter réponses des magasins pour Rodrigo
+    S.unsubs.push(onSnapshot(query(collection(db,'shops/depot/alerts'),orderBy('createdAt','desc')),snap=>{
+      S.alerts=snap.docs.filter(d=>!d.data().answered).map(d=>({id:d.id,...d.data()}));
+      renderNav();
+    }));
     SHOPS.filter(s=>!s.isDepot).forEach(sh=>{
       S.unsubs.push(onSnapshot(query(collection(db,'shops/'+sh.id+'/orders'),orderBy('createdAt','desc')),snap=>{
         const orders=snap.docs.map(d=>({id:d.id,shopId:sh.id,shopName:sh.name,...d.data()}));
@@ -307,6 +317,12 @@ function listen(){
     S.unsubs.push(onSnapshot(query(collection(db,'shops/'+S.shop+'/orders'),orderBy('createdAt','desc')),snap=>{
       S.orders=snap.docs.map(d=>({id:d.id,...d.data()}));
       if(S.mode==='order')render();else renderNav();
+    }));
+    // Écouter les alertes reçues
+    S.unsubs.push(onSnapshot(query(collection(db,'shops/'+S.shop+'/alerts'),orderBy('createdAt','desc')),snap=>{
+      S.alerts=snap.docs.filter(d=>!d.data().answered).map(d=>({id:d.id,...d.data()}));
+      if(S.alerts.length>0)showAlertsNotif();
+      if(S.mode==='stock')render();
     }));
   }
 }
@@ -329,16 +345,17 @@ function render(){
 
 function renderNav(){
   const low=S.products.filter(p=>(p.qty||0)<=(p.minQty||2)).length;
+  const alertN=(S.alerts||[]).length;
   const pend=S.orders.filter(o=>o.status==='pending').length;
   const cartN=S.cart.reduce((s,c)=>s+c.qty,0);
   const tabs=isDepot()?[
-    {id:'stock',ic:'📦',lb:'Stock',b:low},
+    {id:'stock',ic:'📦',lb:'Stock',b:low+alertN},
     {id:'order',ic:'🛒',lb:'Commandes',b:pend},
     {id:'admin',ic:'⚙️',lb:'Admin',b:0},
     {id:'recap',ic:'📊',lb:'Récap',b:0},
     {id:'params',ic:'🔧',lb:'Params',b:0}
   ]:[
-    {id:'stock',ic:'📦',lb:'Stock',b:low},
+    {id:'stock',ic:'📦',lb:'Stock',b:low+alertN},
     {id:'order',ic:'🛒',lb:'Commandes',b:cartN},
     {id:'recap',ic:'📊',lb:'Récap',b:0}
   ];
@@ -384,6 +401,16 @@ function renderStock(){
   const out=fl.filter(p=>(p.qty||0)===0||p.rupture);
   let h='<div class="sb"><input type="search" placeholder="🔍 Rechercher..." value="'+S.search+'" oninput="setSrch(this.value)"></div>';
   h+='<div class="ds"><div class="dc'+(S.dept?'':' active')+'" onclick="setDept(\'\')">Tous</div>'+DEPTS.map(d=>'<div class="dc'+(S.dept===d?' active':'')+'" onclick="setDept(\''+d+'\')">'+d+'</div>').join('')+'</div>';
+  // Afficher réponses des magasins pour Rodrigo
+  if(isDepot()&&S.alerts&&S.alerts.length>0){
+    S.alerts.forEach(function(alert){
+      h+='<div style="background:#14532d;border:1px solid #166534;border-radius:10px;padding:12px;margin-bottom:8px">';
+      h+='<div style="font-size:13px;font-weight:700;color:#86efac;margin-bottom:4px">📩 Réponse de '+alert.shopName+'</div>';
+      h+='<div style="font-size:14px;color:#fff;margin-bottom:8px">'+alert.message+'</div>';
+      h+='<button onclick="ignorerAlerteDepot(\"'+alert.id+'\")" style="background:#166534;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer">✓ Lu</button>';
+      h+='</div>';
+    });
+  }
   if(out.length)h+='<div class="alert">⚠️ '+out.length+' produit(s) en rupture</div>';
   if(!fl.length)return h+'<div class="empty">Aucun produit</div>';
   return h+'<div class="grid">'+fl.map(vigRow).join('')+'</div>';
@@ -397,6 +424,7 @@ function renderOrder(){
     h+='<button class="tbb'+(S.tab===1?' active':'')+'" onclick="setTab(1)">Toutes ('+S.orders.length+')</button>';
   } else {
     const low=S.products.filter(p=>(p.qty||0)<=(p.minQty||2)).length;
+  const alertN=(S.alerts||[]).length;
     h+='<button class="tbb'+(S.tab===0?' active':'')+'" onclick="setTab(0)">À commander ('+low+')</button>';
     h+='<button class="tbb'+(S.tab===1?' active':'')+'" onclick="setTab(1)">Panier ('+S.cart.length+')</button>';
     h+='<button class="tbb'+(S.tab===2?' active':'')+'" onclick="setTab(2)">Historique</button>';
@@ -651,6 +679,36 @@ window.sendRuptureAlert=async function(id){
     await addDoc(collection(db,'shops/'+sh.id+'/alerts'),{productId:id,productName:p.name,fromShop:S.shop,fromShopName:myName,answered:false,createdAt:serverTimestamp()});
   }
   alert('✅ Demande envoyée aux autres magasins !');
+};
+
+window.ignorerAlerteDepot=async function(alertId){
+  await updateDoc(doc(db,'shops/depot/alerts/'+alertId),{answered:true});
+};
+
+window.repondreAlerte=async function(alertId,productId){
+  const el=document.getElementById('alertQty_'+alertId);
+  const qty=parseInt(el?.value)||0;
+  const p=S.products.find(x=>x.id===productId);
+  // Marquer comme répondu
+  await updateDoc(doc(db,'shops/'+S.shop+'/alerts/'+alertId),{answered:true,response:qty});
+  // Envoyer réponse à l'entrepôt Rodrigo
+  const myName=SHOPS.find(s=>s.id===S.shop)?.name||S.shop;
+  await addDoc(collection(db,'shops/depot/alerts'),{
+    type:'reponse',
+    productId,
+    productName:p?.name||productId,
+    shopId:S.shop,
+    shopName:myName,
+    qty,
+    message:myName+' a '+qty+' unité(s) de "'+( p?.name||productId)+'" en stock',
+    answered:false,
+    createdAt:serverTimestamp()
+  });
+  alert('✅ Réponse envoyée à Rodrigo !');
+};
+
+window.ignorerAlerte=async function(alertId){
+  await updateDoc(doc(db,'shops/'+S.shop+'/alerts/'+alertId),{answered:true});
 };
 
 window.addProduct=async()=>{
