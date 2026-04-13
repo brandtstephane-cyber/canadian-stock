@@ -217,7 +217,7 @@ select.fi{appearance:none}
   <div>
     <h1 id="hTitle">🍁 Canadian Market</h1>
     <div class="sub" id="hSub"></div>
-    <div class="ver">v35</div>
+    <div class="ver">v36</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -594,15 +594,41 @@ function renderOrder(){
   </div>`;
   if(isDepot()){
     const list=S.tab===0?S.orders.filter(o=>o.status==='pending'):S.orders;
-    if(!list.length)return h+`<div class="empty">Aucune commande</div>`;
-    return h+list.map(o=>`
-      <div class="card">
-        <div class="card-h"><h3>${o.shopName||''} — ${o.date||''}</h3><span class="chip ${o.status==='done'?'ok':'low'}">${o.status==='done'?'Livrée':'En attente'}</span></div>
-        <div class="card-b">
-          ${(o.items||[]).map(i=>`<div class="oi ${i.done?'oid':''}"><span>${i.name}</span><span>×${i.qty} carton(s)</span></div>`).join('')}
-          ${o.status!=='done'?`<button class="btn btn-green btn-sm" style="margin-top:8px" onclick="markDone('${o.id}','${o.shopId}')">✓ Marquer livrée</button>`:''}
+    if(!list.length)return h+`<div class="empty">Aucune commande en attente</div>`;
+    return h+list.map(o=>{
+      const allDone=(o.items||[]).every(i=>i.done);
+      const doneCount=(o.items||[]).filter(i=>i.done).length;
+      const total=(o.items||[]).length;
+      return `<div class="card" style="margin-bottom:14px">
+        <div class="card-h" style="flex-direction:column;align-items:flex-start;gap:4px">
+          <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
+            <h3 style="font-size:14px">📦 ${o.shopName||'Magasin'}</h3>
+            <span class="chip ${o.status==='done'?'ok':allDone?'ok':'low'}">${o.status==='done'?'Livrée':allDone?'Prêt à livrer':'En cours '+doneCount+'/'+total}</span>
+          </div>
+          <div style="font-size:11px;color:var(--muted)">${o.date||''}</div>
         </div>
-      </div>`).join('');
+        <div class="card-b">
+          <div class="grid" style="margin-bottom:10px">
+            ${(o.items||[]).map((item,idx)=>{
+              const prod=S.products.find(p=>p.id===item.id);
+              const imgHtml=prod?.photo?`<img src="${prod.photo}" onerror="this.style.display='none'">`:`<div class="vig-emoji">📦</div>`;
+              const isDone=item.done;
+              return `<div class="vig" onclick="toggleItem('${o.id}','${o.shopId}',${idx})" style="position:relative">
+                <div class="vig-img" style="${isDone?'filter:brightness(0.4)':''}">
+                  ${imgHtml}
+                  ${isDone?`<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#22c55e;font-size:20px;font-weight:800">✓<div style="font-size:9px">Chargé</div></div>`:''}
+                </div>
+                <div class="vig-body">
+                  <div class="vig-name">${item.name}</div>
+                  <div class="vig-qty ${isDone?'ok':'low'}">${isDone?'✓ Chargé':'×'+item.qty+' carton'+(item.qty>1?'s':'')}</div>
+                </div>
+              </div>`;
+            }).join('')}
+          </div>
+          ${o.status!=='done'?`<button class="btn ${allDone?'btn-green':'btn-out'}" onclick="${allDone?`markDone('${o.id}','${o.shopId}')`:''}" style="${allDone?'':'cursor:not-allowed;opacity:.5'}">${allDone?'✅ Marquer comme livrée':'Cliquez sur chaque produit pour cocher'}</button>`:''}
+        </div>
+      </div>`;
+    }).join('');
   }
   // Magasin
   if(S.tab===0){
@@ -768,6 +794,15 @@ window.sendOrder=async()=>{
   });
   S.cart=[];alert('✅ Commande envoyée !');S.tab=2;render();
 };
+
+window.toggleItem=async function(orderId,shopId,idx){
+  const order=S.orders.find(o=>o.id===orderId&&o.shopId===shopId);
+  if(!order||order.status==='done')return;
+  const items=[...(order.items||[])];
+  items[idx]={...items[idx],done:!items[idx].done};
+  await updateDoc(doc(db,`shops/${shopId}/orders`,orderId),{items});
+};
+
 window.markDone=async(id,shopId)=>{
   await updateDoc(doc(db,`shops/${shopId}/orders`,id),{status:'done'});
 };
