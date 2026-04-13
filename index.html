@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#C8102E">
-<title>Canadian Market v56</title>
+<title>Canadian Market v57</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{background:#111!important;min-height:100vh}
@@ -169,7 +169,7 @@ select.fi{appearance:none}
 <div class="pin-screen show" id="pinScreen">
   <div class="pin-logo">🍁</div>
   <div class="pin-title">Canadian Market</div>
-  <div class="pin-ver" id="pinVer">v56</div>
+  <div class="pin-ver" id="pinVer">v57</div>
   <div class="pin-sub">Entrez votre code PIN</div>
   <div class="pin-dots">
     <div class="pin-dot" id="pd0"></div>
@@ -198,7 +198,7 @@ select.fi{appearance:none}
   <div>
     <h1 id="hTitle">🍁 Canadian Market</h1>
     <div class="sub" id="hSub"></div>
-    <div class="ver">v56</div>
+    <div class="ver">v57</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -465,10 +465,17 @@ function renderStock(){
   // Afficher réponses des magasins pour Rodrigo
   if(isDepot()&&S.alerts&&S.alerts.length>0){
     S.alerts.forEach(function(alert){
-      h+='<div style="background:#14532d;border:1px solid #166534;border-radius:10px;padding:12px;margin-bottom:8px">';
-      h+='<div style="font-size:13px;font-weight:700;color:#86efac;margin-bottom:4px">📩 Réponse de '+alert.shopName+'</div>';
-      h+='<div style="font-size:14px;color:#fff;margin-bottom:8px">'+alert.message+'</div>';
-      h+='<button onclick="ignorerAlerteDepot(\"'+alert.id+'\")" style="background:#166534;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer">✓ Lu</button>';
+      // Couleur selon magasin : vert=Genève, orange=Vevey, bleu=autre
+      var isGeneve=(alert.shopId==='geneve'||( alert.shopName&&alert.shopName.toLowerCase().includes('gen')));
+      var isVevey=(alert.shopId==='vevey'||(alert.shopName&&alert.shopName.toLowerCase().includes('vev')));
+      var bg=isGeneve?'#14532d':isVevey?'#7c2d00':'#1e3a5f';
+      var border=isGeneve?'#166534':isVevey?'#9a3412':'#1d4ed8';
+      var titleColor=isGeneve?'#86efac':isVevey?'#fdba74':'#93c5fd';
+      var shopIcon=isGeneve?'🏪':isVevey?'🏬':'🏭';
+      h+='<div style="background:'+bg+';border:1px solid '+border+';border-radius:10px;padding:12px;margin-bottom:8px">';
+      h+='<div style="font-size:13px;font-weight:700;color:'+titleColor+';margin-bottom:4px">'+shopIcon+' Réponse de '+alert.shopName+'</div>';
+      h+='<div style="font-size:14px;color:#fff;margin-bottom:10px;line-height:1.4">'+alert.message+'</div>';
+      h+='<button onclick="ignorerAlerteDepot(''+alert.id+'')" style="background:'+border+';color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;width:100%">✅ J'ai mis le produit dans le camion</button>';
       h+='</div>';
     });
   }
