@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#C8102E">
-<title>Canadian Market v58</title>
+<title>Canadian Market v59</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{background:#111!important;min-height:100vh}
@@ -169,7 +169,7 @@ select.fi{appearance:none}
 <div class="pin-screen show" id="pinScreen">
   <div class="pin-logo">🍁</div>
   <div class="pin-title">Canadian Market</div>
-  <div class="pin-ver" id="pinVer">v58</div>
+  <div class="pin-ver" id="pinVer">v59</div>
   <div class="pin-sub">Entrez votre code PIN</div>
   <div class="pin-dots">
     <div class="pin-dot" id="pd0"></div>
@@ -198,7 +198,7 @@ select.fi{appearance:none}
   <div>
     <h1 id="hTitle">🍁 Canadian Market</h1>
     <div class="sub" id="hSub"></div>
-    <div class="ver">v58</div>
+    <div class="ver">v59</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -273,6 +273,17 @@ select.fi{appearance:none}
 <script>
 var pinCode='';
 var PINS={'0000':'depot','1111':'geneve','2222':'vevey'};
+// Restaurer session au rechargement
+(function(){
+  var saved=localStorage.getItem('cam_session');
+  if(saved&&Object.values(PINS).includes(saved)){
+    document.getElementById('pinScreen').classList.remove('show');
+    window.addEventListener('DOMContentLoaded',function(){});
+    setTimeout(function(){
+      if(typeof window.startApp==='function')window.startApp(saved);
+    },300);
+  }
+})();
 function pinPress(d){
   if(pinCode.length>=4)return;
   pinCode+=d;
@@ -287,6 +298,7 @@ function pinDel(){
 function checkPin(){
   var shop=PINS[pinCode];
   if(shop){
+    localStorage.setItem('cam_session',shop);
     document.getElementById('pinScreen').classList.remove('show');
     if(typeof window.startApp==='function')window.startApp(shop);
   } else {
@@ -296,6 +308,7 @@ function checkPin(){
   }
 }
 function lockApp(){
+  localStorage.removeItem('cam_session');
   hidePanel();
   pinCode='';
   for(var i=0;i<4;i++){var el=document.getElementById('pd'+i);if(el)el.className='pin-dot';}
@@ -780,6 +793,9 @@ window.sendRuptureAlert=async function(id){
 
 window.ignorerAlerteDepot=async function(alertId){
   await updateDoc(doc(db,'shops/depot/alerts/'+alertId),{answered:true});
+  // Retirer immédiatement de la liste locale sans attendre Firestore
+  S.alerts=(S.alerts||[]).filter(function(a){return a.id!==alertId;});
+  render();
 };
 
 window.currentNotifAlertId=null;
