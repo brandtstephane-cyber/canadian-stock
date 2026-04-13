@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#C8102E">
-<title>Canadian Market v54</title>
+<title>Canadian Market v55</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{background:#111!important;min-height:100vh}
@@ -169,7 +169,7 @@ select.fi{appearance:none}
 <div class="pin-screen show" id="pinScreen">
   <div class="pin-logo">🍁</div>
   <div class="pin-title">Canadian Market</div>
-  <div class="pin-ver" id="pinVer">v54</div>
+  <div class="pin-ver" id="pinVer">v55</div>
   <div class="pin-sub">Entrez votre code PIN</div>
   <div class="pin-dots">
     <div class="pin-dot" id="pd0"></div>
@@ -198,7 +198,7 @@ select.fi{appearance:none}
   <div>
     <h1 id="hTitle">🍁 Canadian Market</h1>
     <div class="sub" id="hSub"></div>
-    <div class="ver">v54</div>
+    <div class="ver">v55</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -898,7 +898,11 @@ function openCrop(img){
     if(e.touches.length===2){
       const dist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
       const ratio=dist/cropState.pinchDist;
-      cropState.scale=Math.max(fs/Math.max(img.width,img.height),Math.min(5,cropState.scale*ratio));
+      const mx=(e.touches[0].clientX+e.touches[1].clientX)/2;
+      const my=(e.touches[0].clientY+e.touches[1].clientY)/2;
+      cropState.x=mx+(cropState.x-mx)*ratio;
+      cropState.y=my+(cropState.y-my)*ratio;
+      cropState.scale=Math.max(0.1,Math.min(8,cropState.scale*ratio));
       cropState.pinchDist=dist;
       drawCrop();
     } else if(cropState.dragging){
@@ -950,6 +954,17 @@ window.confirmCrop=function(){
 window.closeCrop=function(){
   document.getElementById('cropOv').classList.remove('show');
   cropState.img=null;
+};
+
+window.zoomCrop=function(factor){
+  const canvas=document.getElementById('cropCanvas');
+  const cx=canvas.width/2;
+  const cy=canvas.height/2;
+  // Zoomer centré sur le milieu du canvas
+  cropState.x=cx+(cropState.x-cx)*factor;
+  cropState.y=cy+(cropState.y-cy)*factor;
+  cropState.scale=cropState.scale*factor;
+  drawCrop();
 };
 
 async function lookupBarcode(code){
@@ -1138,6 +1153,11 @@ window.renderPanel=function(){
   <div class="crop-wrap" id="cropWrap">
     <canvas id="cropCanvas"></canvas>
     <div id="cropFrame" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);border:3px solid #fff;box-shadow:0 0 0 9999px rgba(0,0,0,.6);pointer-events:none"></div>
+  </div>
+  <div style="background:rgba(0,0,0,.85);padding:8px 16px;display:flex;justify-content:center;gap:16px">
+    <button onclick="zoomCrop(0.8)" style="background:#2a2a2a;border:none;color:#fff;width:44px;height:44px;border-radius:22px;font-size:22px;cursor:pointer">−</button>
+    <span style="color:#888;font-size:11px;align-self:center">Zoom</span>
+    <button onclick="zoomCrop(1.25)" style="background:#2a2a2a;border:none;color:#fff;width:44px;height:44px;border-radius:22px;font-size:22px;cursor:pointer">+</button>
   </div>
   <div class="crop-bottom">
     <button class="crop-btn" style="background:#2a2a2a;color:#fff" onclick="closeCrop()">Annuler</button>
