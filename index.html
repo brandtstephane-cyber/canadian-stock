@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#C8102E">
-<title>Canadian Market v65</title>
+<title>Canadian Market v66</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{background:#111!important;min-height:100vh}
@@ -171,7 +171,7 @@ select.fi{appearance:none}
 <div class="pin-screen show" id="pinScreen">
   <div class="pin-logo">🍁</div>
   <div class="pin-title">Canadian Market</div>
-  <div class="pin-ver" id="pinVer">v65</div>
+  <div class="pin-ver" id="pinVer">v66</div>
   <div class="pin-sub">Entrez votre code PIN</div>
   <div class="pin-dots">
     <div class="pin-dot" id="pd0"></div>
@@ -200,7 +200,7 @@ select.fi{appearance:none}
   <div>
     <h1 id="hTitle">🍁 Canadian Market</h1>
     <div class="sub" id="hSub"></div>
-    <div class="ver">v65</div>
+    <div class="ver">v66</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -282,7 +282,6 @@ var PINS={'0000':'depot','1111':'geneve','2222':'vevey'};
   var saved=localStorage.getItem('cam_session');
   if(saved&&Object.values(PINS).includes(saved)){
     document.getElementById('pinScreen').classList.remove('show');
-    window.addEventListener('DOMContentLoaded',function(){});
     setTimeout(function(){
       if(typeof window.startApp==='function')window.startApp(saved);
     },300);
@@ -341,10 +340,6 @@ let DEPTS=['Épicerie & Divers','Boissons','Candy','Mexicain','Amérique Latine'
 const S={shop:'depot',mode:'stock',tab:0,products:[],orders:[],alerts:[],cart:[],search:'',dept:'',unsubs:[],photoData:null,editId:null};
 function isDepot(){return S.shop==='depot';}
 
-function showAlertsNotif(){
-  // Rien - on affiche dans renderStock
-}
-
 async function loadConfig(){
   try{const d=await getDoc(doc(db,'config','departments'));if(d.exists()&&d.data().list?.length)DEPTS=d.data().list;}catch(e){}
   try{const s=await getDoc(doc(db,'config','shops'));if(s.exists()&&s.data().list?.length){const dep={id:'depot',name:'Entrepôt — Rodrigo',isDepot:true};SHOPS=[dep,...s.data().list.filter(x=>x.id!=='depot')];}}catch(e){}
@@ -352,9 +347,7 @@ async function loadConfig(){
 
 window.startApp=async function(shop){
   S.shop=shop;
-  // Lancer immédiatement sans attendre Firebase config
   listen();
-  // Charger config en parallèle
   loadConfig().then(function(){render();}).catch(function(){});
 };
 
@@ -368,8 +361,7 @@ function listen(){
   if(isDepot()){
     S.orders=[];
     S.alerts=[];
-    // Écouter réponses des magasins pour Rodrigo
-    S.unsubs.push(onSnapshot(query(collection(db,'shops/depot/alerts'),orderBy('createdAt','desc')),snap=>{
+      S.unsubs.push(onSnapshot(query(collection(db,'shops/depot/alerts'),orderBy('createdAt','desc')),snap=>{
       S.alerts=snap.docs.filter(d=>!d.data().answered).map(d=>({id:d.id,...d.data()}));
       renderNav();
     }));
@@ -386,12 +378,10 @@ function listen(){
       S.orders=snap.docs.map(d=>({id:d.id,...d.data()}));
       if(S.mode==='order')render();else renderNav();
     }));
-    // Écouter les alertes reçues
-    S.unsubs.push(onSnapshot(query(collection(db,'shops/'+S.shop+'/alerts'),orderBy('createdAt','desc')),snap=>{
+      S.unsubs.push(onSnapshot(query(collection(db,'shops/'+S.shop+'/alerts'),orderBy('createdAt','desc')),snap=>{
       const prev=S.alerts||[];
       S.alerts=snap.docs.filter(d=>!d.data().answered).map(d=>({id:d.id,...d.data()}));
-      // Afficher popup si nouvelle alerte
-      if(S.alerts.length>prev.length&&S.alerts.length>0){
+          if(S.alerts.length>prev.length&&S.alerts.length>0){
         const newAlert=S.alerts[0];
         window.currentNotifAlertId=newAlert.id;
         window.currentNotifProductId=newAlert.productId;
@@ -424,7 +414,6 @@ function render(){
 
 function renderNav(){
   const low=S.products.filter(p=>(p.qty||0)<=(p.minQty||2)).length;
-  const alertN=(S.alerts||[]).length;
   const pend=S.orders.filter(o=>o.status==='pending').length;
   const cartN=S.cart.reduce((s,c)=>s+c.qty,0);
   const tabs=isDepot()?[
@@ -479,7 +468,6 @@ function renderStock(){
   const fl=S.products.filter(p=>!S.dept||p.dept===S.dept).filter(p=>!S.search||p.name.toLowerCase().includes(S.search.toLowerCase()));
   const out=fl.filter(p=>(p.qty||0)===0||p.rupture);
   let h='<div class="sb"><input type="search" placeholder="🔍 Rechercher..." value="'+S.search+'" oninput="setSrch(this.value)"></div>';
-  // Afficher confirmations reçues pour magasin demandeur
   if(!isDepot()&&S.alerts&&S.alerts.length>0){
     S.alerts.filter(function(a){return a.type==='confirmation_partage';}).forEach(function(alert){
       h+='<div style="background:#1e3a5f;border:1px solid #1d4ed8;border-radius:10px;padding:12px;margin-bottom:8px">';
@@ -490,11 +478,9 @@ function renderStock(){
     });
   }
   h+='<div class="ds"><div class="dc'+(S.dept?'':' active')+'" onclick="setDept(\'\')">Tous</div>'+DEPTS.map(d=>'<div class="dc'+(S.dept===d?' active':'')+'" onclick="setDept(\''+d+'\')">'+d+'</div>').join('')+'</div>';
-  // Afficher réponses des magasins pour Rodrigo
   if(isDepot()&&S.alerts&&S.alerts.length>0){
     S.alerts.forEach(function(alert){
-      // Couleur selon magasin : vert=Genève, orange=Vevey, bleu=autre
-      var isGeneve=(alert.shopId==='geneve'||( alert.shopName&&alert.shopName.toLowerCase().includes('gen')));
+          var isGeneve=(alert.shopId==='geneve'||( alert.shopName&&alert.shopName.toLowerCase().includes('gen')));
       var isVevey=(alert.shopId==='vevey'||(alert.shopName&&alert.shopName.toLowerCase().includes('vev')));
       var bg=isGeneve?'#14532d':isVevey?'#7c2d00':'#1e3a5f';
       var border=isGeneve?'#166534':isVevey?'#9a3412':'#1d4ed8';
@@ -520,7 +506,6 @@ function renderOrder(){
     h+='<button class="tbb'+(S.tab===1?' active':'')+'" onclick="setTab(1)">Toutes ('+S.orders.length+')</button>';
   } else {
     const low=S.products.filter(p=>(p.qty||0)<=(p.minQty||2)).length;
-  const alertN=(S.alerts||[]).length;
     h+='<button class="tbb'+(S.tab===0?' active':'')+'" onclick="setTab(0)">À commander ('+low+')</button>';
     h+='<button class="tbb'+(S.tab===1?' active':'')+'" onclick="setTab(1)">Panier ('+S.cart.length+')</button>';
     h+='<button class="tbb'+(S.tab===2?' active':'')+'" onclick="setTab(2)">Historique</button>';
@@ -560,7 +545,6 @@ function renderOrder(){
     }).join('');
   }
 
-  // Magasin
   if(S.tab===0){
     const low=S.products.filter(p=>(p.qty||0)<=(p.minQty||2)&&!(p.rupture));
     if(!low.length)return h+'<div class="empty">✅ Rien à commander</div>';
@@ -718,7 +702,6 @@ window.toggleItem=async function(orderId,shopId,idx){
   const wasDone=items[idx].done;
   items[idx]={...items[idx],done:!wasDone};
   await updateDoc(doc(db,'shops/'+shopId+'/orders/'+orderId),{items});
-  // Déduire/remettre stock
   const item=items[idx];
   const prod=S.products.find(p=>p.id===item.id);
   if(prod){
@@ -817,13 +800,9 @@ window.sendRuptureAlert=async function(id){
 
 window.ignorerAlerteDepot=async function(alertId){
   await updateDoc(doc(db,'shops/depot/alerts/'+alertId),{answered:true});
-  // Retirer immédiatement de la liste locale sans attendre Firestore
   S.alerts=(S.alerts||[]).filter(function(a){return a.id!==alertId;});
   render();
 };
-
-window.currentNotifAlertId=null;
-window.currentNotifProductId=null;
 
 window.ignorerNotif=async function(){
   if(window.currentNotifAlertId){
@@ -843,12 +822,10 @@ window.repondreNotif=async function(){
   const p=S.products.find(x=>x.id===productId);
   const myName=SHOPS.find(s=>s.id===S.shop)?.name||S.shop;
   const toShare=qty>0?Math.floor(qty/2):0;
-  // Marquer alerte comme répondu — disparaît immédiatement localement
   S.alerts=(S.alerts||[]).filter(function(a){return a.id!==alertId;});
   document.getElementById('notifPopup').classList.remove('show');
   if(S.mode==='stock')render();
   await updateDoc(doc(db,'shops/'+S.shop+'/alerts/'+alertId),{answered:true,response:qty,toShare});
-  // Alerter Rodrigo
   await addDoc(collection(db,'shops/depot/alerts'),{
     type:'reponse_partage',
     productId,
@@ -860,7 +837,6 @@ window.repondreNotif=async function(){
     answered:false,
     createdAt:serverTimestamp()
   });
-  // Envoyer confirmation au magasin demandeur
   if(fromShopId&&fromShopId!==S.shop){
     await addDoc(collection(db,'shops/'+fromShopId+'/alerts'),{
       type:'confirmation_partage',
@@ -877,7 +853,6 @@ window.repondreNotif=async function(){
 };
 
 window.repondreAlerte=async function(alertId,productId){
-  // Ancienne fonction gardée pour compatibilité
   window.currentNotifAlertId=alertId;
   window.currentNotifProductId=productId;
   window.repondreNotif();
@@ -912,7 +887,6 @@ window.addProduct=async()=>{
   render();
 };
 
-// --- RECADREUR INTERACTIF ---
 var cropState={img:null,x:0,y:0,scale:1,startX:0,startY:0,dragging:false,pinchDist:0,frameSize:0};
 
 window.handlePhoto=function(input){
@@ -937,23 +911,19 @@ function openCrop(img){
   const frame=document.getElementById('cropFrame');
   ov.classList.add('show');
   setTimeout(function(){
-  // Taille cadre carré = 80% de la plus petite dimension
   const ww=wrap.clientWidth||window.innerWidth;
   const wh=wrap.clientHeight||(window.innerHeight-140);
   const fs=Math.min(ww,wh)*0.8;
   cropState.frameSize=fs;
   frame.style.width=fs+'px';
   frame.style.height=fs+'px';
-  // Canvas = taille wrap
   canvas.width=ww;canvas.height=wh;
-  // Scale initial : image remplit le cadre
   cropState.scale=fs/Math.min(img.width,img.height);
   cropState.x=(ww-img.width*cropState.scale)/2;
   cropState.y=(wh-img.height*cropState.scale)/2;
   drawCrop();
   },50);
-  // Touch events
-  canvas.ontouchstart=function(e){
+    canvas.ontouchstart=function(e){
     e.preventDefault();
     if(e.touches.length===2){
       cropState.pinchDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
@@ -982,8 +952,7 @@ function openCrop(img){
     }
   };
   canvas.ontouchend=function(){cropState.dragging=false;};
-  // Mouse events (desktop)
-  canvas.onmousedown=function(e){cropState.dragging=true;cropState.startX=e.clientX-cropState.x;cropState.startY=e.clientY-cropState.y;};
+    canvas.onmousedown=function(e){cropState.dragging=true;cropState.startX=e.clientX-cropState.x;cropState.startY=e.clientY-cropState.y;};
   canvas.onmousemove=function(e){if(!cropState.dragging)return;cropState.x=e.clientX-cropState.startX;cropState.y=e.clientY-cropState.startY;drawCrop();};
   canvas.onmouseup=function(){cropState.dragging=false;};
   canvas.onwheel=function(e){e.preventDefault();cropState.scale=Math.max(0.1,cropState.scale*(e.deltaY<0?1.1:0.9));drawCrop();};
@@ -1012,7 +981,6 @@ window.confirmCrop=function(){
   const sw=fs/cropState.scale;
   ctx.drawImage(cropState.img,sx,sy,sw,sw,0,0,400,400);
   S.photoData=out.toDataURL('image/jpeg',0.85);
-  // Sauvegarder valeurs formulaire avant fermeture
   var savedName=document.getElementById('aName')?document.getElementById('aName').value:'';
   var savedBarcode=document.getElementById('aBarcode')?document.getElementById('aBarcode').value:'';
   var savedDept=document.getElementById('aDept')?document.getElementById('aDept').value:'';
@@ -1022,7 +990,6 @@ window.confirmCrop=function(){
   var savedPieces=document.getElementById('aPieces')?document.getElementById('aPieces').value:'0';
   var savedMin=document.getElementById('aMin')?document.getElementById('aMin').value:'2';
   closeCrop();
-  // Restaurer valeurs après fermeture
   setTimeout(function(){
     if(document.getElementById('aName'))document.getElementById('aName').value=savedName;
     if(document.getElementById('aBarcode'))document.getElementById('aBarcode').value=savedBarcode;
@@ -1046,7 +1013,6 @@ window.zoomCrop=function(factor){
   const canvas=document.getElementById('cropCanvas');
   const cx=canvas.width/2;
   const cy=canvas.height/2;
-  // Zoomer centré sur le milieu du canvas
   cropState.x=cx+(cropState.x-cx)*factor;
   cropState.y=cy+(cropState.y-cy)*factor;
   cropState.scale=cropState.scale*factor;
@@ -1078,13 +1044,11 @@ async function lookupBarcode(code){
       const imgs=[];
       const seen=new Set();
       function addImg(url){if(url&&!seen.has(url)){seen.add(url);imgs.push(url);}}
-      // Images principales
-      addImg(p.image_front_url);
+          addImg(p.image_front_url);
       addImg(p.image_front_small_url);
       addImg(p.image_url);
       addImg(p.image_small_url);
-      // Images secondaires depuis selected_images
-      const si=p.selected_images||{};
+          const si=p.selected_images||{};
       ['front','ingredients','nutrition','packaging'].forEach(function(k){
         const sizes=si[k]||{};
         ['display','small','thumb'].forEach(function(s){
@@ -1092,8 +1056,7 @@ async function lookupBarcode(code){
           Object.values(langs).forEach(function(u){addImg(u);});
         });
       });
-      // Images depuis images object
-      const allImgs=p.images||{};
+          const allImgs=p.images||{};
       Object.keys(allImgs).forEach(function(k){
         const imgObj=allImgs[k];
         if(imgObj&&imgObj.sizes){
