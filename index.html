@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#C8102E">
-<title>Canadian Market v72</title>
+<title>Canadian Market v73</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{background:#111!important;min-height:100vh}
@@ -171,7 +171,7 @@ select.fi{appearance:none}
 <div class="pin-screen show" id="pinScreen">
   <div class="pin-logo">🍁</div>
   <div class="pin-title">Canadian Market</div>
-  <div class="pin-ver" id="pinVer">v72</div>
+  <div class="pin-ver" id="pinVer">v73</div>
   <div class="pin-sub">Entrez votre code PIN</div>
   <div class="pin-dots">
     <div class="pin-dot" id="pd0"></div>
@@ -200,7 +200,7 @@ select.fi{appearance:none}
   <div>
     <h1 id="hTitle">🍁 Canadian Market</h1>
     <div class="sub" id="hSub"></div>
-    <div class="ver">v72</div>
+    <div class="ver">v73</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -326,7 +326,7 @@ function hideModal(){document.getElementById('modalOv').classList.remove('show')
 
 <script type="module">
 import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import{getFirestore,collection,doc,onSnapshot,addDoc,updateDoc,deleteDoc,setDoc,getDoc,query,orderBy,serverTimestamp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import{getFirestore,collection,doc,onSnapshot,addDoc,updateDoc,deleteDoc,setDoc,getDoc,getDocs,query,orderBy,where,serverTimestamp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const app=initializeApp({apiKey:"AIzaSyC3vf083Qj1l-AxK79LPcvx8F1LdtMtdVw",authDomain:"canadian-american-stock.firebaseapp.com",projectId:"canadian-american-stock",storageBucket:"canadian-american-stock.firebasestorage.app",messagingSenderId:"916149478771",appId:"1:916149478771:web:7b25e704425dfbc207d106"});
 const db=getFirestore(app);
@@ -392,6 +392,7 @@ function listen(){
         window.currentNotifAlertId=newAlert.id;
         window.currentNotifProductId=newAlert.productId;
         window.currentNotifFromShop=newAlert.fromShop||null;
+        window.currentNotifProductName=newAlert.productName||'';
         document.getElementById('notifTitle').textContent='📨 '+newAlert.fromShopName+' cherche un produit';
         document.getElementById('notifMessage').textContent='"'+newAlert.productName+'" est en rupture chez eux. En avez-vous en stock ?';
         document.getElementById('notifQty').value='';
@@ -796,7 +797,12 @@ window.sendRuptureAlert=async function(id){
   if(!p)return;
   const myName=SHOPS.find(s=>s.id===S.shop)?.name||S.shop;
   for(const sh of SHOPS.filter(s=>!s.isDepot&&s.id!==S.shop)){
-    await addDoc(collection(db,'shops/'+sh.id+'/alerts'),{
+    // Vérifier si une alerte existe déjà pour ce produit
+    try{
+      const existing=await getDocs(query(collection(db,'shops',sh.id,'alerts'),where('productId','==',id)));
+      if(!existing.empty)continue; // Déjà une alerte, pas de doublon
+    }catch(e){}
+    await addDoc(collection(db,'shops',sh.id,'alerts'),{
       productId:id,productName:p.name,
       fromShop:S.shop,fromShopName:myName,
       answered:false,createdAt:serverTimestamp()
@@ -811,19 +817,29 @@ window.ignorerAlerteDepot=async function(alertId){
   render();
 };
 
+async function deleteAllAlertsForProduct(shopId, productId, alertId){
+  // Supprimer TOUTES les alertes pour ce produit (évite les doublons de tests)
+  try{
+    const q=query(collection(db,'shops',shopId,'alerts'),where('productName','==',window.currentNotifProductName||''));
+    const snap=await getDocs(q);
+    const deletes=snap.docs.map(d=>deleteDoc(d.ref));
+    await Promise.all(deletes);
+  }catch(e){
+    // Fallback : supprimer juste celle-ci
+    try{await deleteDoc(doc(db,'shops',shopId,'alerts',alertId));}catch(e2){}
+  }
+}
+
 window.ignorerNotif=async function(){
   const alertId=window.currentNotifAlertId;
   const shopId=S.shop;
   document.getElementById('notifPopup').classList.remove('show');
   if(!alertId)return;
   window.currentNotifAlertId=null;
-  // localStorage backup
   try{const s=new Set(JSON.parse(localStorage.getItem('cam_seen_alerts')||'[]'));s.add(alertId);localStorage.setItem('cam_seen_alerts',JSON.stringify([...s]));}catch(e){}
-  // Mise à jour locale immédiate
-  S.alerts=(S.alerts||[]).filter(function(a){return a.id!==alertId;});
+  S.alerts=[];
   if(S.mode==='stock')render();
-  // Supprimer le document Firebase complètement
-  try{await deleteDoc(doc(db,'shops',shopId,'alerts',alertId));}catch(e){console.error('ignorerNotif deleteDoc error:',e);}
+  await deleteAllAlertsForProduct(shopId, window.currentNotifProductId, alertId);
 };
 
 window.repondreNotif=async function(){
@@ -839,7 +855,7 @@ window.repondreNotif=async function(){
   try{const s=new Set(JSON.parse(localStorage.getItem('cam_seen_alerts')||'[]'));s.add(alertId);localStorage.setItem('cam_seen_alerts',JSON.stringify([...s]));}catch(e){}
   S.alerts=(S.alerts||[]).filter(function(a){return a.id!==alertId;});
   if(S.mode==='stock')render();
-  try{await deleteDoc(doc(db,'shops',S.shop,'alerts',alertId));}catch(e){console.error('repondreNotif deleteDoc error:',e);}
+  await deleteAllAlertsForProduct(S.shop, productId, alertId);
   await addDoc(collection(db,'shops/depot/alerts'),{
     type:'reponse_partage',
     productId,
