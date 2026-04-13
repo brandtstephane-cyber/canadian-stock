@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#C8102E">
-<title>Canadian Market v87</title>
+<title>Canadian Market v88</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{background:#111!important;min-height:100vh}
@@ -171,7 +171,7 @@ select.fi{appearance:none}
 <div class="pin-screen show" id="pinScreen">
   <div class="pin-logo">🍁</div>
   <div class="pin-title">Canadian Market</div>
-  <div class="pin-ver" id="pinVer">v87</div>
+  <div class="pin-ver" id="pinVer">v88</div>
   <div class="pin-sub">Entrez votre code PIN</div>
   <div class="pin-dots">
     <div class="pin-dot" id="pd0"></div>
@@ -200,7 +200,7 @@ select.fi{appearance:none}
   <div>
     <h1 id="hTitle">🍁 Canadian Market</h1>
     <div class="sub" id="hSub"></div>
-    <div class="ver">v87</div>
+    <div class="ver">v88</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -473,8 +473,10 @@ function vigRow(p){
   const isRup=qty===0||p.rupture;
   const imgHtml=p.photo?'<img src="'+p.photo+'" onerror="this.style.display=\'none\'">':'<div class="vig-emoji">📦</div>';
   const fn=isDepot()?"openEditModal('"+p.id+"')":"vigClick('"+p.id+"')";
-  const longpress=!isDepot()?'oncontextmenu="return false" ontouchstart="startLongPress(event,\''+p.id+'\')" ontouchend="cancelLongPress()" ontouchcancel="cancelLongPress()" ontouchmove="cancelLongPress()"':'';
-  let html='<div class="vig" onclick="'+fn+'" '+longpress+'>';
+  const tapfn=isDepot()?"openEditModal('"+p.id+"')":"vigTap('"+p.id+"')";
+  const longpress=!isDepot()?'oncontextmenu="return false" ontouchstart="startLongPress(event,\''+p.id+'\')" ontouchend="endTouch(event,\''+p.id+'\')" ontouchcancel="cancelLongPress()" ontouchmove="cancelLongPress()"':'';
+  const clickfn=isDepot()?'onclick="'+tapfn+'"':'';
+  let html='<div class="vig" '+clickfn+' '+longpress+'>';
   html+='<div class="vig-img">'+imgHtml;
   if(isRup){
     html+='<div class="vig-rupture"><div class="vig-rupture-txt">RUPTURE<br>DE STOCK</div>';
@@ -1243,10 +1245,15 @@ window.removeDept=async function(name){
 };
 
 window._longPressTimer=null;
+window._longPressFired=false;
+
+window.vigTap=function(id){vigClick(id);};
+
 window.startLongPress=function(e,id){
-  e.preventDefault();
   cancelLongPress();
+  window._longPressFired=false;
   window._longPressTimer=setTimeout(function(){
+    window._longPressFired=true;
     window._longPressTimer=null;
     const p=S.products.find(x=>x.id===id);
     if(!p)return;
@@ -1256,11 +1263,18 @@ window.startLongPress=function(e,id){
         S.cart=S.cart.filter(x=>x.id!==id);
         render();renderNav();updateFloatBtn();
       }
-    } else {
-      showToast('Ce produit est deja dans votre panier');
     }
-  },2000);
+  },1500);
 };
+
+window.endTouch=function(e,id){
+  if(window._longPressTimer){
+    clearTimeout(window._longPressTimer);
+    window._longPressTimer=null;
+    if(!window._longPressFired) vigClick(id);
+  }
+};
+
 window.cancelLongPress=function(){
   if(window._longPressTimer){clearTimeout(window._longPressTimer);window._longPressTimer=null;}
 };
