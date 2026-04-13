@@ -189,6 +189,8 @@ select.fi{appearance:none}
   <div class="pin-logo">🍁</div>
   <div class="pin-title">Canadian Market</div>
   <div class="pin-sub">Entrez votre code PIN</div>
+  <div style="font-size:10px;color:#333;margin-top:-20px;margin-bottom:20px">v40</div>
+  <div style="font-size:10px;color:#333;margin-top:-20px;margin-bottom:20px">v40</div>
   <div class="pin-dots">
     <div class="pin-dot" id="pd0"></div>
     <div class="pin-dot" id="pd1"></div>
@@ -217,7 +219,7 @@ select.fi{appearance:none}
   <div>
     <h1 id="hTitle">🍁 Canadian Market</h1>
     <div class="sub" id="hSub"></div>
-    <div class="ver">v39</div>
+    <div class="ver">v40</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -329,7 +331,7 @@ let SHOPS=[
 ];
 let DEPTS=['Épicerie & Divers','Boissons','Candy','Mexicain','Amérique Latine','Canadien','Non Food'];
 
-const S={shop:'depot',mode:'stock',tab:0,products:[],orders:[],cart:[],search:'',dept:'',unsubs:[],photoData:null,editId:null};
+const S={shop:'depot',mode:'stock',tab:0,products:[],orders:[],alerts:[],cart:[],search:'',dept:'',unsubs:[],photoData:null,editId:null,alertsLoaded:false};
 
 function isDepot(){return S.shop==='depot';}
 
@@ -349,6 +351,8 @@ async function loadConfig(){
 }
 
 window.startApp=async function(shop){
+  S.alertsLoaded=false;
+  S.alerts=[];
   S.shop=shop;
   await loadConfig();
   listen();
@@ -397,6 +401,8 @@ function render(){
   else if(S.mode==='order')c.innerHTML=renderOrder();
   else if(S.mode==='admin')c.innerHTML=renderAdmin();
   else if(S.mode==='recap')c.innerHTML=renderRecap();
+  else if(S.mode==='config')c.innerHTML=renderConfig();
+  else if(S.mode==='params')c.innerHTML=renderParams();
   updateFloatBtn();
 }
 
@@ -425,7 +431,7 @@ function renderNav(){
   const tabs=[
     {id:'stock',ic:'📦',lb:'Stock',b:low},
     {id:'order',ic:'🛒',lb:'Commandes',b:isDepot()?pend:cartN},
-    ...(isDepot()?[{id:'admin',ic:'⚙️',lb:'Admin',b:0}]:[]),
+    ...(isDepot()?[{id:'admin',ic:'⚙️',lb:'Admin',b:0},{id:'params',ic:'🔧',lb:'Params',b:0}]:[]),
     {id:'recap',ic:'📊',lb:'Récap',b:0}
   ];
   document.getElementById('nav').innerHTML=tabs.map(t=>`
@@ -437,6 +443,15 @@ function renderNav(){
 
 // ── STOCK ──────────────────────────────────────────────────
 function renderStock(){
+  // Charger et afficher les alertes pour ce magasin
+  if(!isDepot()&&!S.alertsLoaded){
+    S.alertsLoaded=true;
+    onSnapshot(query(collection(db,`shops/${S.shop}/alerts`),orderBy('createdAt','desc')),snap=>{
+      S.alerts=snap.docs.filter(d=>!d.data().answered).map(d=>({id:d.id,...d.data()}));
+      if(S.mode==='stock')render();
+    });
+  }
+
   const fl=S.products.filter(p=>!S.dept||p.dept===S.dept).filter(p=>!S.search||p.name.toLowerCase().includes(S.search.toLowerCase()));
   const out=fl.filter(p=>(p.qty||0)===0);
   let h=`<div class="sb"><input type="search" placeholder="🔍 Rechercher..." value="${S.search}" oninput="setSrch(this.value)"></div>
@@ -444,6 +459,18 @@ function renderStock(){
     <div class="dc${!S.dept?' active':''}" onclick="setDept('')">Tous</div>
     ${DEPTS.map(d=>`<div class="dc${S.dept===d?' active':''}" onclick="setDept('${d}')">${d}</div>`).join('')}
   </div>`;
+  // Alertes rupture entrepôt
+  if(!isDepot()&&S.alerts?.length){
+    h+=S.alerts.map(a=>`
+      <div style="background:#1e3a5f;border:1px solid #1d4ed8;border-radius:10px;padding:10px 14px;margin-bottom:8px;font-size:12px;color:#93c5fd">
+        <div style="font-weight:700;margin-bottom:4px">${a.message}</div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <input class="fi" id="alert_qty_${a.id}" type="number" placeholder="Quantité en stock..." style="flex:1;padding:6px 10px;font-size:13px" min="0">
+          <button class="btn btn-blue btn-sm" onclick="repondreAlerte('${a.id}','${a.productId}')">Répondre</button>
+          <button class="btn btn-out btn-sm" onclick="ignorerAlerte('${a.id}')">Ignorer</button>
+        </div>
+      </div>`).join('');
+  }
   if(out.length)h+=`<div class="alert">⚠️ ${out.length} produit(s) épuisé(s)</div>`;
   if(!fl.length)return h+`<div class="empty">Aucun produit</div>`;
   // Grille vignettes pour tous
@@ -460,9 +487,11 @@ function vigRow(p){
   return `<div class="vig" onclick="${onclick}" style="${isRupture&&!isDepot()?'opacity:.6':''}">
     <div class="vig-img" style="${isRupture?'position:relative':''}">
       ${imgHtml}
-      ${isRupture?`<div style="position:absolute;inset:0;background:rgba(127,29,29,0.45);display:flex;align-items:center;justify-content:center;flex-direction:column">
+      ${isRupture&&!isDepot()?`<div style="position:absolute;inset:0;background:rgba(127,29,29,0.45);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px">
         <div style="font-size:11px;font-weight:800;color:#fca5a5;text-align:center;line-height:1.3">RUPTURE<br>DE STOCK</div>
-      </div>`:''}
+        <button onclick="event.stopPropagation();sendRuptureAlert('${p.id}')" style="background:var(--red);color:#fff;border:none;border-radius:6px;padding:2px 6px;font-size:9px;font-weight:700;cursor:pointer">Demander aux autres</button>
+      </div>`:isRupture?`<div style="position:absolute;inset:0;background:rgba(127,29,29,0.45);display:flex;align-items:center;justify-content:center">
+        <div style="font-size:11px;font-weight:800;color:#fca5a5;text-align:center">RUPTURE</div></div>`:''}
     </div>
     ${cartN>0?`<div class="vig-cart">${cartN}🛒</div>`:''}
     <div class="vig-body">
@@ -553,13 +582,33 @@ window.chQtyModal=function(d){
 };
 
 window.unsetRupture=async function(id){
-  await updateDoc(doc(db,'products',id),{rupture:false});
+  await updateDoc(doc(db,'products',id),{rupture:false,qty:1});
+  // Mettre à jour l'affichage du stock dans la modal
+  const qd=document.getElementById('mQtyDisplay');if(qd)qd.textContent='1';
+  const mCartons=document.getElementById('mCartons');if(mCartons)mCartons.value='0';
+  const mPieces=document.getElementById('mPieces');if(mPieces)mPieces.value='1';
+  const td=document.getElementById('mTotalDisplay');if(td)td.textContent='1 unités';
   hideModal();
 };
 
 window.setRupture=async function(id){
   if(!confirm('Mettre ce produit en rupture de stock ?'))return;
+  const p=S.products.find(x=>x.id===id);
   await updateDoc(doc(db,'products',id),{qty:0,rupture:true});
+  // Envoyer alerte à tous les magasins
+  if(p){
+    for(const sh of SHOPS.filter(s=>!s.isDepot)){
+      await addDoc(collection(db,`shops/${sh.id}/alerts`),{
+        type:'rupture',
+        productId:id,
+        productName:p.name,
+        message:`⚠️ "${p.name}" est en rupture à l'entrepôt. Avez-vous encore ce produit en stock ?`,
+        date:new Date().toLocaleString('fr-CH'),
+        answered:false,
+        createdAt:serverTimestamp()
+      });
+    }
+  }
   hideModal();
 };
 
@@ -723,6 +772,21 @@ function renderAdmin(){
     <button class="btn btn-red" onclick="addProduct()">+ Ajouter le produit</button>
   </div></div>
 
+  <div class="st">Produits (${S.products.length})</div>
+  <div class="card"><div class="card-b">
+    ${!S.products.length?'<div class="empty">Aucun produit</div>':
+      S.products.map(p=>`<div class="pr">
+        <div class="pi">${p.photo?`<img src="${p.photo}">`:'📦'}</div>
+        <div class="pinfo"><div class="pn">${p.name}</div><div class="pd">${p.dept||''} · ${p.piecesPerBox||12} pcs/MC · Alerte: ${p.minQty||2}</div></div>
+        <button onclick="openEditModal('${p.id}')" style="background:none;border:none;font-size:16px;cursor:pointer;color:#93c5fd">✏️</button>
+      </div>`).join('')}
+  </div></div>`;
+}
+
+// ── RECAP ──────────────────────────────────────────────────
+
+function renderConfig(){
+  return `
   <div class="st">Gérer les magasins</div>
   <div class="card"><div class="card-b">
     <div style="display:flex;gap:8px;margin-bottom:10px">
@@ -747,20 +811,9 @@ function renderAdmin(){
         <div class="pinfo"><div class="pn">${d}</div></div>
         <button onclick="removeDept('${d}')" style="background:none;border:none;font-size:16px;cursor:pointer;color:#f87171">🗑</button>
       </div>`).join('')}
-  </div></div>
-
-  <div class="st">Produits (${S.products.length})</div>
-  <div class="card"><div class="card-b">
-    ${!S.products.length?'<div class="empty">Aucun produit</div>':
-      S.products.map(p=>`<div class="pr">
-        <div class="pi">${p.photo?`<img src="${p.photo}">`:'📦'}</div>
-        <div class="pinfo"><div class="pn">${p.name}</div><div class="pd">${p.dept||''} · ${p.piecesPerBox||12} pcs/MC · Alerte: ${p.minQty||2}</div></div>
-        <button onclick="openEditModal('${p.id}')" style="background:none;border:none;font-size:16px;cursor:pointer;color:#93c5fd">✏️</button>
-      </div>`).join('')}
   </div></div>`;
 }
 
-// ── RECAP ──────────────────────────────────────────────────
 function renderRecap(){
   const tot=S.products.length,out=S.products.filter(p=>(p.qty||0)===0).length;
   const low=S.products.filter(p=>(p.qty||0)>0&&(p.qty||0)<=(p.minQty||2)).length;
@@ -820,10 +873,50 @@ window.toggleItem=async function(orderId,shopId,idx){
   const order=S.orders.find(o=>o.id===orderId&&o.shopId===shopId);
   if(!order||order.status==='done')return;
   const items=[...(order.items||[])];
-  items[idx]={...items[idx],done:!items[idx].done};
+  const wasDone=items[idx].done;
+  items[idx]={...items[idx],done:!wasDone};
   await updateDoc(doc(db,`shops/${shopId}/orders`,orderId),{items});
+  // Si on coche (chargé) → enlever du stock catalogue
+  if(!wasDone){
+    const prod=S.products.find(p=>p.id===items[idx].id);
+    if(prod){
+      const cartonsOut=items[idx].qty||1;
+      const ppb=prod.piecesPerBox||12;
+      const unitesOut=cartonsOut*ppb;
+      const newQty=Math.max(0,(prod.qty||0)-unitesOut);
+      await updateDoc(doc(db,'products',items[idx].id),{qty:newQty});
+    }
+  } else {
+    // Si on décoche → remettre le stock
+    const prod=S.products.find(p=>p.id===items[idx].id);
+    if(prod){
+      const cartonsBack=items[idx].qty||1;
+      const ppb=prod.piecesPerBox||12;
+      const unitesBack=cartonsBack*ppb;
+      await updateDoc(doc(db,'products',items[idx].id),{qty:(prod.qty||0)+unitesBack});
+    }
+  }
 };
 
+
+window.sendRuptureAlert=async function(productId){
+  const p=S.products.find(x=>x.id===productId);
+  if(!p)return;
+  const otherShops=SHOPS.filter(s=>!s.isDepot&&s.id!==S.shop);
+  for(const shop of otherShops){
+    await addDoc(collection(db,`shops/${shop.id}/alerts`),{
+      type:'rupture_question',
+      productId,
+      productName:p.name,
+      fromShop:S.shop,
+      fromShopName:SHOPS.find(s=>s.id===S.shop)?.name||S.shop,
+      message:`${SHOPS.find(s=>s.id===S.shop)?.name||'Un magasin'} cherche "${p.name}" — En avez-vous en stock ?`,
+      answered:false,
+      createdAt:serverTimestamp()
+    });
+  }
+  alert('✅ Message envoyé aux autres magasins !');
+};
 window.markDone=async(id,shopId)=>{
   await updateDoc(doc(db,`shops/${shopId}/orders`,id),{status:'done'});
 };
@@ -974,6 +1067,61 @@ window.removeDept=async name=>{
   DEPTS=DEPTS.filter(d=>d!==name);
   await setDoc(doc(db,'config','departments'),{list:DEPTS});
   render();
+};
+
+
+function renderParams(){
+  return `
+  <div class="st">Gérer les magasins</div>
+  <div class="card"><div class="card-b">
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <input class="fi" id="newShopName" placeholder="Nom du magasin..." style="flex:1">
+      <button class="btn btn-green btn-sm" onclick="addShop()">+ Ajouter</button>
+    </div>
+    ${SHOPS.filter(s=>!s.isDepot).map(s=>`
+      <div class="pr">
+        <div class="pinfo"><div class="pn">${s.name}</div></div>
+        <button onclick="removeShop('${s.id}')" style="background:none;border:none;font-size:16px;cursor:pointer;color:#f87171">🗑</button>
+      </div>`).join('')}
+  </div></div>
+  <div class="st">Gérer les départements</div>
+  <div class="card"><div class="card-b">
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <input class="fi" id="newDept" placeholder="Nouveau département..." style="flex:1">
+      <button class="btn btn-green btn-sm" onclick="addDept()">+ Ajouter</button>
+    </div>
+    ${DEPTS.map(d=>`
+      <div class="pr">
+        <div class="pinfo"><div class="pn">${d}</div></div>
+        <button onclick="removeDept('${d}')" style="background:none;border:none;font-size:16px;cursor:pointer;color:#f87171">🗑</button>
+      </div>`).join('')}
+  </div></div>`;
+}
+
+window.repondreAlerte=async function(alertId,productId){
+  const el=document.getElementById('alert_qty_'+alertId);
+  const qty=parseInt(el?.value)||0;
+  const p=S.products.find(x=>x.id===productId);
+  // Marquer alerte comme répondue
+  await updateDoc(doc(db,`shops/${S.shop}/alerts`,alertId),{answered:true,response:qty});
+  // Envoyer réponse à Rodrigo
+  await addDoc(collection(db,'shops/depot/alerts'),{
+    type:'reponse_rupture',
+    productId,
+    productName:p?.name||'',
+    shopId:S.shop,
+    shopName:SHOPS.find(s=>s.id===S.shop)?.name||'',
+    qty,
+    message:`📦 ${SHOPS.find(s=>s.id===S.shop)?.name||'Magasin'} a ${qty} unité(s) de "${p?.name||''}" en stock`,
+    date:new Date().toLocaleString('fr-CH'),
+    answered:false,
+    createdAt:serverTimestamp()
+  });
+  alert('Réponse envoyée à Rodrigo !');
+};
+
+window.ignorerAlerte=async function(alertId){
+  await updateDoc(doc(db,`shops/${S.shop}/alerts`,alertId),{answered:true});
 };
 
 // ── Panel ──────────────────────────────────────────────────
