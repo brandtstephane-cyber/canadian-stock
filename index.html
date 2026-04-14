@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#C8102E">
-<title>Canadian Market v88</title>
+<title>Canadian Market v89</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{background:#111!important;min-height:100vh}
@@ -152,10 +152,6 @@ select.fi{appearance:none}
 .scan-line{position:absolute;top:0;left:0;right:0;height:2px;background:var(--red);animation:scanline 1.5s ease-in-out infinite}
 @keyframes scanline{0%,100%{top:0}50%{top:100%}}
 .scan-hint{position:absolute;bottom:24px;left:20px;right:20px;text-align:center;color:#fff;font-size:12px;background:rgba(0,0,0,.55);padding:8px;border-radius:8px}
-.img-choices{display:flex;gap:6px;overflow-x:auto;padding:6px 0;margin-top:6px}
-.img-choice{flex-shrink:0;width:70px;height:70px;border-radius:8px;overflow:hidden;border:2px solid transparent;cursor:pointer}
-.img-choice img{width:100%;height:100%;object-fit:cover}
-.img-choice.selected{border-color:var(--red)}
 /* RECADREUR */
 .crop-ov{display:none;position:fixed;inset:0;background:#000;z-index:600;flex-direction:column}
 .crop-ov.show{display:flex}
@@ -171,7 +167,7 @@ select.fi{appearance:none}
 <div class="pin-screen show" id="pinScreen">
   <div class="pin-logo">🍁</div>
   <div class="pin-title">Canadian Market</div>
-  <div class="pin-ver" id="pinVer">v88</div>
+  <div class="pin-ver" id="pinVer">v89</div>
   <div class="pin-sub">Entrez votre code PIN</div>
   <div class="pin-dots">
     <div class="pin-dot" id="pd0"></div>
@@ -200,7 +196,7 @@ select.fi{appearance:none}
   <div>
     <h1 id="hTitle">🍁 Canadian Market</h1>
     <div class="sub" id="hSub"></div>
-    <div class="ver">v88</div>
+    <div class="ver">v89</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -600,7 +596,6 @@ function renderAdmin(){
   let r='<div class="st">Ajouter un produit</div><div class="card"><div class="card-b">';
   r+='<button class="btn btn-blue" onclick="openScanner()">📷 Scanner le code-barres</button>';
   r+='<div class="sr" id="scanResult"></div>';
-  r+='<div id="imgChoices"></div>';
   r+='<div class="fg"><label class="fl">Code-barres</label><input class="fi" id="aBarcode" placeholder="Scanné ou manuel" inputmode="numeric"></div>';
   r+='<div class="fg"><label class="fl">Nom *</label><input class="fi" id="aName" placeholder="Ex: Dr Pepper 355ml"></div>';
   r+='<div class="fg"><label class="fl">Département</label><select class="fi" id="aDept">'+DEPTS.map(d=>'<option>'+d+'</option>').join('')+'</select></div>';
@@ -944,7 +939,6 @@ window.addProduct=async()=>{
   document.getElementById('totalDisplay').textContent='0 unités';
   document.getElementById('photoPreview').style.display='none';
   document.getElementById('scanResult').style.display='none';
-  const ic=document.getElementById('imgChoices');if(ic)ic.innerHTML='';
   render();
 };
 
@@ -1084,7 +1078,7 @@ async function lookupBarcode(code){
   const sr=document.getElementById('scanResult');
   if(sr){sr.style.display='block';sr.className='sr info';sr.textContent='🔍 Recherche...';}
   try{
-    const res=await fetch('https://world.openfoodfacts.org/api/v2/product/'+code+'.json?fields=product_name,brands,image_front_url,image_front_small_url,image_url,image_small_url,categories,selected_images,images');
+    const res=await fetch('https://world.openfoodfacts.org/api/v2/product/'+code+'.json?fields=product_name,brands,categories');
     const data=await res.json();
     if(data.status===1&&data.product){
       const p=data.product;
@@ -1146,30 +1140,7 @@ async function lookupBarcode(code){
   }
 }
 
-window.selectPhoto=function(url,el){
-  if(el){
-    const cont=el.parentElement;
-    cont.querySelectorAll('.img-choice').forEach(function(d){d.classList.remove('selected');});
-    el.classList.add('selected');
-  }
-  window.selectProductPhoto(url,null);
-};
 
-window.selectProductPhoto=function(url,el){
-  const img=new Image();
-  img.crossOrigin='anonymous';
-  img.onload=function(){
-    const size=Math.min(img.width,img.height);
-    const canvas=document.createElement('canvas');
-    canvas.width=400;canvas.height=400;
-    canvas.getContext('2d').drawImage(img,(img.width-size)/2,(img.height-size)/2,size,size,0,0,400,400);
-    S.photoData=canvas.toDataURL('image/jpeg',0.85);
-    const prev=document.getElementById('photoPreview')||document.getElementById('mPhotoPreview');
-    if(prev){prev.src=S.photoData;prev.style.display='block';}
-  };
-  img.onerror=function(){S.photoData=url;};
-  img.src=url;
-};
 
 let scanStream=null,scanInterval=null;
 window.openScanner=async function(){
