@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#C8102E">
-<title>Canadian Market v93</title>
+<title>Canadian Market v94</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{background:#111!important;min-height:100vh}
@@ -167,7 +167,7 @@ select.fi{appearance:none}
 <div class="pin-screen show" id="pinScreen">
   <div class="pin-logo">🍁</div>
   <div class="pin-title">Canadian Market</div>
-  <div class="pin-ver" id="pinVer">v93</div>
+  <div class="pin-ver" id="pinVer">v94</div>
   <div class="pin-sub">Entrez votre code PIN</div>
   <div class="pin-dots">
     <div class="pin-dot" id="pd0"></div>
@@ -196,7 +196,7 @@ select.fi{appearance:none}
   <div>
     <h1 id="hTitle">🍁 Canadian Market</h1>
     <div class="sub" id="hSub"></div>
-    <div class="ver">v93</div>
+    <div class="ver">v94</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -489,7 +489,17 @@ function vigRow(p){
   }
   html+='</div>';
   if(cartN>0)html+='<div class="vig-cart">'+cartN+'🛒</div>';
-  html+='<div class="vig-body"><div class="vig-name">'+p.name+'</div><div class="vig-qty '+qc+'">'+(isRup?'⚠️ Rupture':qty+' u.')+'</div></div></div>';
+  if(isLow)html+='<div style="position:absolute;top:4px;right:4px;background:#fb923c;color:#fff;font-size:9px;font-weight:700;padding:2px 5px;border-radius:6px">Stock bas</div>';
+  let expiryHtml='';
+  if(p.expiry){
+    const today=new Date();today.setHours(0,0,0,0);
+    const exp=new Date(p.expiry);
+    const days=Math.round((exp-today)/(1000*60*60*24));
+    if(days<0)expiryHtml='<div style="font-size:9px;font-weight:700;color:#f87171;margin-top:2px">⚠️ Expiré</div>';
+    else if(days<=30)expiryHtml='<div style="font-size:9px;font-weight:700;color:#fb923c;margin-top:2px">⏱ '+days+'j</div>';
+    else if(days<=60)expiryHtml='<div style="font-size:9px;color:#fbbf24;margin-top:2px">⏱ '+days+'j</div>';
+  }
+  html+='<div class="vig-body"><div class="vig-name">'+p.name+'</div><div class="vig-qty '+qc+'">'+(isRup?'⚠️ Rupture':qty+' u.')+'</div>'+expiryHtml+'</div></div>';
   return html;
 }
 
@@ -532,7 +542,8 @@ function renderOrder(){
   let h='<div class="tb">';
   if(isDepot()){
     h+='<button class="tbb'+(S.tab===0?' active':'')+'" onclick="setTab(0)">En attente ('+pending+')</button>';
-    h+='<button class="tbb'+(S.tab===1?' active':'')+'" onclick="setTab(1)">Toutes ('+S.orders.length+')</button>';
+    h+='<button class="tbb'+(S.tab===1?' active':'')+'" onclick="setTab(1)">Toutes</button>';
+    h+='<button class="tbb'+(S.tab===2?' active':'')+'" onclick="setTab(2)">Historique</button>';
   } else {
     const low=S.products.filter(p=>(p.qty||0)<=(p.minQty||2)).length;
     h+='<button class="tbb'+(S.tab===0?' active':'')+'" onclick="setTab(0)">À commander ('+low+')</button>';
@@ -542,6 +553,32 @@ function renderOrder(){
   h+='</div>';
 
   if(isDepot()){
+    if(S.tab===2){
+      const done=S.orders.filter(o=>o.status==='done');
+      if(!done.length)return h+'<div class="empty">Aucune livraison effectuée</div>';
+      // Grouper par semaine
+      const byWeek={};
+      done.forEach(function(o){
+        const d=new Date(o.date||'');
+        const monday=new Date(d);monday.setDate(d.getDate()-((d.getDay()+6)%7));
+        const key=monday.toLocaleDateString('fr-CH',{day:'2-digit',month:'2-digit',year:'numeric'});
+        if(!byWeek[key])byWeek[key]=[];
+        byWeek[key].push(o);
+      });
+      let r=h;
+      Object.entries(byWeek).forEach(function(e){
+        r+='<div class="st">Semaine du '+e[0]+'</div>';
+        e[1].forEach(function(o){
+          const tot=(o.items||[]).reduce(function(s,i){return s+(i.qty||0);},0);
+          r+='<div class="card" style="margin-bottom:8px"><div class="card-b" style="display:flex;align-items:center;gap:10px">';
+          r+='<span style="font-size:24px">'+(o.shopId==='geneve'?'🏪':'🏬')+'</span>';
+          r+='<div style="flex:1"><div style="font-size:13px;font-weight:600">'+(o.shopName||'')+'</div>';
+          r+='<div style="font-size:11px;color:var(--muted)">'+(o.date||'')+' · '+tot+' carton'+(tot>1?'s':'')+'</div></div>';
+          r+='<span class="chip ok">Livré</span></div></div>';
+        });
+      });
+      return r;
+    }
     const list=S.tab===0?S.orders.filter(o=>o.status==='pending'):S.orders;
     if(!list.length)return h+'<div class="empty">Aucune commande</div>';
     return h+list.map(function(o){
@@ -944,6 +981,9 @@ window.dismissShopAlert=async function(alertId){
 window.addProduct=async()=>{
   const name=document.getElementById('aName').value.trim();
   if(!name){alert('Nom requis');return;}
+  if(!S.photoData){
+    if(!confirm('Aucune photo pour ce produit. Continuer quand même ?'))return;
+  }
   const ppb=parseInt(document.getElementById('aPpb').value)||12;
   const c=parseInt(document.getElementById('aCartons').value)||0;
   const p=parseInt(document.getElementById('aPieces').value)||0;
