@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#C8102E">
-<title>Canadian Market v97</title>
+<title>Canadian Market v98</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{background:#111!important;min-height:100vh}
@@ -167,7 +167,7 @@ select.fi{appearance:none}
 <div class="pin-screen show" id="pinScreen">
   <div class="pin-logo">🍁</div>
   <div class="pin-title">Canadian Market</div>
-  <div class="pin-ver" id="pinVer">v97</div>
+  <div class="pin-ver" id="pinVer">v98</div>
   <div class="pin-sub">Entrez votre code PIN</div>
   <div class="pin-dots">
     <div class="pin-dot" id="pd0"></div>
@@ -196,7 +196,7 @@ select.fi{appearance:none}
   <div>
     <h1 id="hTitle">🍁 Canadian Market</h1>
     <div class="sub" id="hSub"></div>
-    <div class="ver">v97</div>
+    <div class="ver">v98</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -642,7 +642,7 @@ function renderAdmin(){
   r+='<div class="fg"><label class="fl">Code-barres</label><input class="fi" id="aBarcode" placeholder="Scanné ou manuel" inputmode="numeric"></div>';
   r+='<div class="fg"><label class="fl">Nom *</label><input class="fi" id="aName" placeholder="Ex: Dr Pepper 355ml"></div>';
   r+='<div class="fg"><label class="fl">Département</label><select class="fi" id="aDept">'+DEPTS.map(d=>'<option>'+d+'</option>').join('')+'</select></div>';
-  r+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div class="fg"><label class="fl">Pièces/master case</label><input class="fi" id="aPpb" type="number" value="12" min="1" oninput="calcTotal()"></div></div>';
+  r+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div class="fg"><label class="fl">Pièces/master case</label><input class="fi" id="aPpb" type="number" value="12" min="1" oninput="calcTotal()"></div><div class="fg"><label class="fl">Date expiration</label><input class="fi" id="aExpiry" type="date"></div></div>';
   r+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div class="fg"><label class="fl">Cartons complets</label><input class="fi" id="aCartons" type="number" value="0" min="0" oninput="calcTotal()"></div><div class="fg"><label class="fl">Pièces séparées</label><input class="fi" id="aPieces" type="number" value="0" min="0" oninput="calcTotal()"></div></div>';
   r+='<div class="fg"><label class="fl">Total calculé</label><div id="totalDisplay" style="background:#14532d;border:1px solid #166534;border-radius:10px;padding:10px;font-size:16px;font-weight:800;color:#22c55e;text-align:center">0 unités</div></div>';
   r+='<div class="fg"><label class="fl">Seuil alerte (unités)</label><input class="fi" id="aMin" type="number" value="2" min="0"></div>';
@@ -790,7 +790,10 @@ window.openEditModal=function(id){
   mc+='<div class="fg"><label class="fl">Code-barres</label><input class="fi" id="mBarcode" value="'+(p.barcode||'')+'" inputmode="numeric"></div>';
   mc+='<div class="fg"><label class="fl">Nom *</label><input class="fi" id="mName" value="'+(p.name||'')+'"></div>';
   mc+='<div class="fg"><label class="fl">Département</label><select class="fi" id="mDept">'+DEPTS.map(d=>'<option'+(p.dept===d?' selected':'')+'>'+d+'</option>').join('')+'</select></div>';
-  mc+='<div class="fg"><label class="fl">Pièces/master case</label><input class="fi" id="mPpb" type="number" value="'+ppb+'" min="1" oninput="calcTotalM()"></div>';
+  mc+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
+  mc+='<div class="fg"><label class="fl">Pieces/master case</label><input class="fi" id="mPpb" type="number" value="'+ppb+'" min="1" oninput="calcTotalM()"></div>';
+  mc+='<div class="fg"><label class="fl">Date expiration</label><input class="fi" id="mExpiry" type="date" value="'+(p.expiry||'')+'" ></div>';
+  mc+='</div>';
   mc+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div class="fg"><label class="fl">Cartons complets</label><input class="fi" id="mCartons" type="number" value="'+cartons+'" min="0" oninput="calcTotalM()"></div><div class="fg"><label class="fl">Pièces séparées</label><input class="fi" id="mPieces" type="number" value="'+pieces+'" min="0" oninput="calcTotalM()"></div></div>';
   mc+='<div class="fg"><label class="fl">Total calculé</label><div id="mTotalDisplay" style="background:#14532d;border:1px solid #166534;border-radius:10px;padding:10px;font-size:16px;font-weight:800;color:#22c55e;text-align:center">'+qty+' unités ('+cartons+' × '+ppb+' + '+pieces+')</div></div>';
   mc+='<div class="fg"><label class="fl">Seuil alerte</label><input class="fi" id="mMin" type="number" value="'+(p.minQty||2)+'" min="0"></div>';
@@ -824,7 +827,7 @@ window.saveEdit=async function(id){
   const cartons=parseInt(document.getElementById('mCartons')?.value)||0;
   const pieces=parseInt(document.getElementById('mPieces')?.value)||0;
   const qty=cartons*ppb+pieces;
-  const updates={name,barcode:document.getElementById('mBarcode')?.value.trim()||null,dept:document.getElementById('mDept')?.value,piecesPerBox:ppb,qty,minQty:parseInt(document.getElementById('mMin')?.value)||2,rupture:qty===0};
+  const updates={name,barcode:document.getElementById('mBarcode')?.value.trim()||null,dept:document.getElementById('mDept')?.value,expiry:document.getElementById('mExpiry')?.value||null,piecesPerBox:ppb,qty,minQty:parseInt(document.getElementById('mMin')?.value)||2,rupture:qty===0};
   if(S.photoData)updates.photo=S.photoData;
   await updateDoc(doc(db,'products',id),updates);
   S.photoData=null;
@@ -987,12 +990,13 @@ window.addProduct=async()=>{
   const ppb=parseInt(document.getElementById('aPpb').value)||12;
   const c=parseInt(document.getElementById('aCartons').value)||0;
   const p=parseInt(document.getElementById('aPieces').value)||0;
-  await addDoc(collection(db,'products'),{name,barcode:document.getElementById('aBarcode').value.trim()||null,dept:document.getElementById('aDept').value,piecesPerBox:ppb,qty:c*ppb+p,minQty:parseInt(document.getElementById('aMin').value)||2,photo:S.photoData||null,rupture:false,createdAt:serverTimestamp()});
+  await addDoc(collection(db,'products'),{name,barcode:document.getElementById('aBarcode').value.trim()||null,dept:document.getElementById('aDept').value,piecesPerBox:ppb,qty:c*ppb+p,minQty:parseInt(document.getElementById('aMin').value)||2,expiry:document.getElementById('aExpiry')?.value||null,photo:S.photoData||null,rupture:false,createdAt:serverTimestamp()});
   S.photoData=null;
   document.getElementById('aName').value='';
   document.getElementById('aBarcode').value='';
   document.getElementById('aCartons').value='0';
   document.getElementById('aPieces').value='0';
+  if(document.getElementById('aExpiry'))document.getElementById('aExpiry').value='';
   document.getElementById('totalDisplay').textContent='0 unités';
   document.getElementById('photoPreview').style.display='none';
   document.getElementById('scanResult').style.display='none';
