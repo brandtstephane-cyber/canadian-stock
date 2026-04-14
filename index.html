@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#C8102E">
-<title>Canadian Market v90</title>
+<title>Canadian Market v91</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{background:#111!important;min-height:100vh}
@@ -167,7 +167,7 @@ select.fi{appearance:none}
 <div class="pin-screen show" id="pinScreen">
   <div class="pin-logo">🍁</div>
   <div class="pin-title">Canadian Market</div>
-  <div class="pin-ver" id="pinVer">v90</div>
+  <div class="pin-ver" id="pinVer">v91</div>
   <div class="pin-sub">Entrez votre code PIN</div>
   <div class="pin-dots">
     <div class="pin-dot" id="pd0"></div>
@@ -196,7 +196,7 @@ select.fi{appearance:none}
   <div>
     <h1 id="hTitle">🍁 Canadian Market</h1>
     <div class="sub" id="hSub"></div>
-    <div class="ver">v90</div>
+    <div class="ver">v91</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -308,8 +308,8 @@ function checkPin(){
 }
 function lockApp(){
   localStorage.removeItem('cam_session');
-  localStorage.removeItem('cam_seen_alerts');
-  localStorage.removeItem('cam_blocked_products');
+  localStorage.removeItem('cam_seen_'+S.shop);
+  localStorage.removeItem('cam_blocked_'+S.shop);
   window.alertPopupBlocked=false;
   // NE PAS effacer cam_existing_* — ils doivent persister entre sessions
   hidePanel();
@@ -399,13 +399,13 @@ function listen(){
       S.unsubs.push(onSnapshot(query(collection(db,'shops/'+S.shop+'/alerts'),orderBy('createdAt','desc')),snap=>{
       const prev=S.alerts||[];
       S.alerts=snap.docs.filter(d=>!d.data().answered).map(d=>({id:d.id,...d.data()}));
-          const seenRaw=localStorage.getItem('cam_seen_alerts')||'[]';
+          const seenRaw=localStorage.getItem('cam_seen_'+S.shop)||'[]';
       const seenSet=new Set(JSON.parse(seenRaw));
       const newAlerts=S.alerts.filter(function(a){return !seenSet.has(a.id);});
       if(newAlerts.length>0&&!window.alertPopupBlocked){
         const newAlert=newAlerts[0];
         seenSet.add(newAlert.id);
-        localStorage.setItem('cam_seen_alerts',JSON.stringify([...seenSet]));
+        localStorage.setItem('cam_seen_'+S.shop,JSON.stringify([...seenSet]));
         window.currentNotifAlertId=newAlert.id;
         window.currentNotifProductId=newAlert.productId;
         window.currentNotifFromShop=newAlert.fromShop||null;
@@ -804,7 +804,7 @@ window.setRupture=async function(id){
 window.unsetRupture=async function(id){
   await updateDoc(doc(db,'products',id),{rupture:false,qty:1});
   // Débloquer ce produit dans localStorage
-  try{const b=new Set(JSON.parse(localStorage.getItem('cam_blocked_products')||'[]'));b.delete(id);localStorage.setItem('cam_blocked_products',JSON.stringify([...b]));}catch(e){}
+  try{const b=new Set(JSON.parse(localStorage.getItem('cam_blocked_'+S.shop)||'[]'));b.delete(id);localStorage.setItem('cam_blocked_'+S.shop,JSON.stringify([...b]));}catch(e){}
   hideModal();
 };
 
@@ -832,9 +832,9 @@ window.sendRuptureAlert=async function(id){
   }
   // Je n'ai pas ce produit → bloquer les demandes entrantes pour lui
   try{
-    const blocked=new Set(JSON.parse(localStorage.getItem('cam_blocked_products')||'[]'));
+    const blocked=new Set(JSON.parse(localStorage.getItem('cam_blocked_'+S.shop)||'[]'));
     blocked.add(id);
-    localStorage.setItem('cam_blocked_products',JSON.stringify([...blocked]));
+    localStorage.setItem('cam_blocked_'+S.shop,JSON.stringify([...blocked]));
   }catch(e){}
   showToast('✅ Demande envoyée aux autres magasins !');
 };
@@ -868,7 +868,7 @@ window.ignorerNotif=async function(){
     (S.alerts||[]).forEach(function(a){_s.add(a.id);});
     localStorage.setItem(_k,JSON.stringify([..._s]));
   }catch(e){}
-  try{const s=new Set(JSON.parse(localStorage.getItem('cam_seen_alerts')||'[]'));s.add(alertId);localStorage.setItem('cam_seen_alerts',JSON.stringify([...s]));}catch(e){}
+  try{const s=new Set(JSON.parse(localStorage.getItem('cam_seen_'+S.shop)||'[]'));s.add(alertId);localStorage.setItem('cam_seen_'+S.shop,JSON.stringify([...s]));}catch(e){}
   S.alerts=[];
   window.alertPopupBlocked=true;
   try{
@@ -892,10 +892,10 @@ window.repondreNotif=async function(){
   const toShare=qty>0?Math.floor(qty/2):0;
   document.getElementById('notifPopup').classList.remove('show');
   try{
-    const blocked=new Set(JSON.parse(localStorage.getItem('cam_blocked_products')||'[]'));
+    const blocked=new Set(JSON.parse(localStorage.getItem('cam_blocked_'+S.shop)||'[]'));
     (S.alerts||[]).forEach(function(a){if(a.productId)blocked.add(a.productId);});
     if(window.currentNotifProductId)blocked.add(window.currentNotifProductId);
-    localStorage.setItem('cam_blocked_products',JSON.stringify([...blocked]));
+    localStorage.setItem('cam_blocked_'+S.shop,JSON.stringify([...blocked]));
   }catch(e){}
   S.alerts=[];
   if(S.mode==='stock')render();
