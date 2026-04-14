@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#C8102E">
-<title>Canadian Market v96</title>
+<title>Canadian Market v97</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{background:#111!important;min-height:100vh}
@@ -167,7 +167,7 @@ select.fi{appearance:none}
 <div class="pin-screen show" id="pinScreen">
   <div class="pin-logo">🍁</div>
   <div class="pin-title">Canadian Market</div>
-  <div class="pin-ver" id="pinVer">v96</div>
+  <div class="pin-ver" id="pinVer">v97</div>
   <div class="pin-sub">Entrez votre code PIN</div>
   <div class="pin-dots">
     <div class="pin-dot" id="pd0"></div>
@@ -196,7 +196,7 @@ select.fi{appearance:none}
   <div>
     <h1 id="hTitle">🍁 Canadian Market</h1>
     <div class="sub" id="hSub"></div>
-    <div class="ver">v96</div>
+    <div class="ver">v97</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -473,6 +473,7 @@ function vigRow(p){
   const qc=qty===0?'out':qty<=min?'low':'ok';
   const cartN=S.cart.filter(c=>c.id===p.id).reduce((s,c)=>s+c.qty,0);
   const isRup=qty===0||p.rupture;
+  const isLow=!isRup&&qty>0&&qty<=min;
   const imgHtml=p.photo?'<img src="'+p.photo+'" onerror="this.style.display=\'none\'">':'<div class="vig-emoji">📦</div>';
   const fn=isDepot()?"openEditModal('"+p.id+"')":"vigClick('"+p.id+"')";
   const tapfn=isDepot()?"openEditModal('"+p.id+"')":"vigTap('"+p.id+"')";
