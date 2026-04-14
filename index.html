@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#C8102E">
-<title>Canadian Market v89</title>
+<title>Canadian Market v90</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{background:#111!important;min-height:100vh}
@@ -167,7 +167,7 @@ select.fi{appearance:none}
 <div class="pin-screen show" id="pinScreen">
   <div class="pin-logo">🍁</div>
   <div class="pin-title">Canadian Market</div>
-  <div class="pin-ver" id="pinVer">v89</div>
+  <div class="pin-ver" id="pinVer">v90</div>
   <div class="pin-sub">Entrez votre code PIN</div>
   <div class="pin-dots">
     <div class="pin-dot" id="pd0"></div>
@@ -196,7 +196,7 @@ select.fi{appearance:none}
   <div>
     <h1 id="hTitle">🍁 Canadian Market</h1>
     <div class="sub" id="hSub"></div>
-    <div class="ver">v89</div>
+    <div class="ver">v90</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="dot" id="syncDot"></span>
@@ -311,6 +311,7 @@ function lockApp(){
   localStorage.removeItem('cam_seen_alerts');
   localStorage.removeItem('cam_blocked_products');
   window.alertPopupBlocked=false;
+  // NE PAS effacer cam_existing_* — ils doivent persister entre sessions
   hidePanel();
   pinCode='';
   for(var i=0;i<4;i++){var el=document.getElementById('pd'+i);if(el)el.className='pin-dot';}
@@ -381,10 +382,15 @@ function listen(){
       if(S.mode==='order')render();else renderNav();
     }));
     // Supprimer TOUTES les vieilles alertes d'abord, puis démarrer le listener
-    // Mémoriser les IDs existants PUIS démarrer le listener
+    // Charger les IDs existants depuis localStorage + Firebase
+    const _lsKey='cam_existing_'+S.shop;
+    const _lsIds=new Set(JSON.parse(localStorage.getItem(_lsKey)||'[]'));
+    window.existingAlertIds=_lsIds;
     getDocs(collection(db,'shops',S.shop,'alerts')).then(function(snap){
       // Toutes les alertes déjà là = pré-existantes = à ignorer
-      snap.docs.forEach(function(d){window.existingAlertIds.add(d.id);});
+      let changed=false;
+      snap.docs.forEach(function(d){if(!_lsIds.has(d.id)){_lsIds.add(d.id);changed=true;}});
+      if(changed)localStorage.setItem(_lsKey,JSON.stringify([..._lsIds]));
       // Supprimer les plus vieilles aussi (>1h)
       const now=Date.now()/1000;
       const old=snap.docs.filter(function(d){const ts=d.data().createdAt?.seconds;return !ts||now-ts>3600;});
@@ -856,9 +862,21 @@ window.ignorerNotif=async function(){
   if(!alertId)return;
   window.currentNotifAlertId=null;
   window.alertPopupBlocked=true;
+  try{
+    const _k='cam_existing_'+S.shop;
+    const _s=new Set(JSON.parse(localStorage.getItem(_k)||'[]'));
+    (S.alerts||[]).forEach(function(a){_s.add(a.id);});
+    localStorage.setItem(_k,JSON.stringify([..._s]));
+  }catch(e){}
   try{const s=new Set(JSON.parse(localStorage.getItem('cam_seen_alerts')||'[]'));s.add(alertId);localStorage.setItem('cam_seen_alerts',JSON.stringify([...s]));}catch(e){}
   S.alerts=[];
   window.alertPopupBlocked=true;
+  try{
+    const _k='cam_existing_'+S.shop;
+    const _s=new Set(JSON.parse(localStorage.getItem(_k)||'[]'));
+    (S.alerts||[]).forEach(function(a){_s.add(a.id);});
+    localStorage.setItem(_k,JSON.stringify([..._s]));
+  }catch(e){}
   if(S.mode==='stock')render();
   await deleteAllAlertsForProduct(shopId, window.currentNotifProductId, alertId);
 };
